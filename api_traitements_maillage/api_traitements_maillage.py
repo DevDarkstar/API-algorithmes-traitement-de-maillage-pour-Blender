@@ -126,9 +126,13 @@ def set_face_colors(context, data):
         # Récupération du groupe de propriétés associé à l'algorithme courant
         property_group = getattr(context.scene, current_algorithm_name, None)
 
+        # Récupération si présente, l'option permettant de supprimer les matériaux déjà associés au maillage courant
+        delete_materials_option = getattr(property_group, "delete_materials", None)
         # Vérification si l'utilisateur a souhaité supprimer les matériaux déjà associés au maillage
-        if property_group.delete_materials:
+        if delete_materials_option:
             mesh.materials.clear()
+        else:
+            pass
 
         # Récupération du nombre de matériaux déjà associés au maillage (servira d'offset pour affecter le bon matériau à la bonne face)
         nb_materials = len(mesh.materials)
@@ -359,11 +363,12 @@ def compute_algorithm(context):
 
 
 def load_algorithms():
-    print(os.getcwd())
+    # Récupération du chemin absolu d'où le script est exécuté
+    script_absolute_path = os.path.dirname(os.path.realpath(__file__))
     # Chargement des données liées à tous les algorithmes contenus dans le fichier "config.json"
     metadata = None
     try:
-        with open("config.json") as f:
+        with open(os.path.join(script_absolute_path, "config.json")) as f:
             metadata = json.load(f)
     except Exception as e:
         print("Une erreur s'est produite lors de la tentative d'ouverture du fichier 'config.json'.")
@@ -541,7 +546,7 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
 classes = (VIEW3D_PT_api_cgal_panel, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
 
 def algorithm_properties_registering():
-    # ainsi que toutes les classes de propriétés des algorithmes de l'API
+    # Enregistrement toutes les classes de propriétés des algorithmes de l'API
     for property_class in Globals.properties_table.values():
         bpy.utils.register_class(property_class)
 
