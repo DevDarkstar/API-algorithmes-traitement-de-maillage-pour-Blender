@@ -2,7 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
-//#include <stdexcept>
+#include <stdexcept>
 #include <algorithm>
 
 namespace SMS = CGAL::Surface_mesh_simplification;
@@ -38,15 +38,18 @@ void SurfaceMeshSimplification::compute_algorithm()
     {
         throw std::runtime_error("Le maillage n"est pas composé que de faces triangulaires...");
     }*/
-
-    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-    // In this example, the simplification stops when the number of undirected edges
-    // drops below 10% of the initial count
-    SMS::Edge_count_ratio_stop_predicate<Surface_mesh> stop(this->m_stop_ratio);
-    int r = SMS::edge_collapse(this->m_surface_mesh, stop);
-    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
-    std::cout << "\nFinished!\n" << r << " edges removed.\n" << this->m_surface_mesh.number_of_edges() << " final edges.\n";
-    std::cout << "Time elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms" << std::endl;
+    try{
+        std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+        // In this example, the simplification stops when the number of undirected edges
+        // drops below 10% of the initial count
+        SMS::Edge_count_ratio_stop_predicate<Surface_mesh> stop(this->m_stop_ratio);
+        int r = SMS::edge_collapse(this->m_surface_mesh, stop);
+        std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+        std::cout << "\nFinished!\n" << r << " edges removed.\n" << this->m_surface_mesh.number_of_edges() << " final edges.\n";
+        std::cout << "Time elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms" << std::endl;
+    }catch(const std::exception& e){
+        std::cerr << "Une erreur s'est produite lors de l'éxécution de l'algorithme de décimation de CGAL : " << e.what() << std::endl;
+    }
 
     // Mise à jour des indices des sommets restants dans le maillage de sorte à ce que le premier sommet du maillage restant ait bien l"indice 0, le second l"indice 1, ...
     std::map<vertex_descriptor, int> vertex_reindexing = this->get_vertex_reindexing();

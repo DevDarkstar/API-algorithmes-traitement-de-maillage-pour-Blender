@@ -11,6 +11,7 @@ bl_info = {
 }
 
 import bpy
+from bpy_extras.io_utils import ImportHelper, ExportHelper
 import bmesh
 import numpy as np
 import random
@@ -21,19 +22,14 @@ import time
 
 # Fonction d'affichage des différentes propriétés suivant l'algorithme choisi par l'utilisateur
 def draw_properties(layout, context, algorithm_name):
-    if algorithm_name != "DEFAULT":
-        # Récupération de la classe de propriétés associée à l'algorithme sélectionné
-        algorithm_properties = getattr(context.scene, algorithm_name.lower(), None)
-        if algorithm_properties is not None:
-            # Création d'un layout de type "box" dans lequel nous allons afficher nos propriétés
-            box = layout.box()
-            # affichage des propriétés de l'algorithme
-            for prop_attribute in Globals.algorithm_properties_name[algorithm_name.lower()]:
-                row = box.row()
-                row.scale_y = 1.4
-                row.prop(algorithm_properties, prop_attribute)
-        else:
-            pass
+    # Récupération de la classe de propriétés associée à l'algorithme sélectionné
+    algorithm_properties = getattr(context.scene, algorithm_name.lower(), None)
+    if algorithm_properties is not None:
+        # affichage des propriétés de l'algorithme
+        for prop_attribute in Globals.algorithm_properties_name[algorithm_name.lower()]:
+            row = layout.row()
+            row.scale_y = 1.4
+            row.prop(algorithm_properties, prop_attribute)
     else:
         pass
 
@@ -274,6 +270,10 @@ class Globals:
     algorithm_input_pipeline = {}
     # Table associant à chaque algorithme de l'API sa description associée
     algorithm_description = {}
+    # Historique des configurations chargées par l'utilisateur
+    configuration_history = []
+    # Dernière configuration chargée par l'utilisateur
+    last_loaded_configuration = {}
 
 
 def create_description(content):
@@ -331,7 +331,7 @@ def compute_algorithm(context):
         # Suppression du message
         api_properties.result_infos = ""
         # Récupération du nom de l'algorithme sélectionné par l'utilisateur
-        algorithm_name = api_properties.algorithm_choice.lower()
+        algorithm_name = api_properties.algorithm_choice.lower() if api_properties.configuration_choice == "CHOSE_ALGORITHM" else Globals.last_loaded_configuration.get("algorithm")
         # Création d'un dictionnaire vide qui va contenir l'ensemble des données à envoyer
         data = {}
         # et exécution des différentes opérations pré-envoi des données
@@ -374,8 +374,24 @@ def load_algorithms():
         print("Une erreur s'est produite lors de la tentative d'ouverture du fichier 'config.json'.")
         raise e
     
+    # Création de la classe de propriétés de l'API Blender qui contiendra une liste de choix laissant la possibilité à l'utilisateur
+    # soit de choisir un algorithme à appliquer sur un maillage en lui laissant la possibilité de personnaliser ses paramètres, soit d'importer la configuration
+    # pré-programmée d'un algorithme contenu dans un fichier au format json, la liste déroulante des algorithmes implémentés
+    # ainsi qu'une propriété contenant l'ensemble des messages pouvant être retournés par l'API interne (côté C++)
+    # Création de la classe vide
+    api_class = type("ApiProperties", (bpy.types.PropertyGroup,), {})
+
+    # Enregistrement de la classe dans le registre de Blender
+    bpy.utils.register_class(api_class)
+
+    # Création de la liste déroulante donnant la possibilité à l'utilisateur de choisir entre choisir un algorithme à appliquer sur un maillage
+    # ou importer une configuration existante
+    setattr(api_class, "configuration_choice", bpy.props.EnumProperty(name="", items=[("DEFAULT", "--Choix de l'option--", ""),
+                                                                                      ("IMPORT_CONFIG", "Importer un algorithme prédéfini (.json)", "Importer la configuration d'un algorithme avec ses paramètres prédéfinis."),
+                                                                                      ("CHOSE_ALGORITHM", "Choisir un algorithme parmi une sélection", "Permet de sélectionner un algorithme et de personnaliser ses paramètres.")], default="DEFAULT"))
+    
     # Création des items de la liste déroulante permettant à l'utilisateur de choisir quel algorithme appliquer sur son maillage
-    items = [("DEFAULT", "--Choix de l'algorithme--", "")]
+    algorithm_items = [("DEFAULT", "--Choix de l'algorithme--", "")]
 
     for data in metadata.values():
         # Récupération du nom de la bibliothèque courante
@@ -391,7 +407,7 @@ def load_algorithms():
                 # Récupération de la description de l'algorithme
                 description = algorithm.get("description", "")
                 # création du choix dans a liste déroulante de l'API
-                items.append((algorithm_name.upper(), algorithm["name"], description))
+                algorithm_items.append((algorithm_name.upper(), algorithm["name"], description))
                 # Stockage de la description de l'algorithme pour l'API dans la table algorithm_description de la structure Globals
                 Globals.algorithm_description[algorithm_name] = create_description(description)
                 # récupération de la liste des opérations à effectuer avant d'envoyer les données côté C++
@@ -423,19 +439,15 @@ def load_algorithms():
                     # et référencement de la classe par un attribut
                     setattr(bpy.types.Scene, algorithm_name, bpy.props.PointerProperty(type=property_class))
     
-    # Création de la classe de propriétés de l'API Blender qui contiendra la la liste déroulante des algorithmes implémentés
-    # ainsi qu"une propriété contenant l'ensemble des messages pouvant être retournés par l'API interne (côté C++)
-    # Création de la classe vide
-    api_class = type("ApiProperties", (bpy.types.PropertyGroup,), {})
-    # Enregistrement de la classe dans le registre de Blender
-    bpy.utils.register_class(api_class)
     # Stockage de l'énumération matérialisant la liste déroulante et stockant tous les choix d'algorithme
-    setattr(api_class, "algorithm_choice", bpy.props.EnumProperty(name="", items=items, default="DEFAULT"))
+    setattr(api_class, "algorithm_choice", bpy.props.EnumProperty(name="", items=algorithm_items, default="DEFAULT"))
     # ainsi que la propriété gérant les messages
     setattr(api_class, "result_infos", bpy.props.StringProperty(
         name="Résultat",
         description="informations sur le ou les résultats de l'algorithme courant utilisé",
         default=""))
+    # tout comme une propriété permettant d'afficher et de masquer la description des algorithmes dans l'API Blender
+    setattr(api_class, "description_is_hidden", bpy.props.BoolProperty(name="Afficher/Masquer la description de l'algorithme", default=True))
     # Stockage de la classe nouvellement créée dans une table permettant de la désinscrire du registre de Blender lors de l'appel de la fonction "unregister"
     Globals.properties_table["api_properties"] = api_class
     # Référencement du groupe de propriétés par un objet de Blender (ici la scène)
@@ -478,12 +490,119 @@ class VIEW3D_OT_display_description(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"} 
     
     def switch_visibility(self, context):
-        context.scene.description_is_hidden = not context.scene.description_is_hidden
+        context.scene.api_properties.description_is_hidden = not context.scene.api_properties.description_is_hidden
 
 
     def execute(self, context):
         self.switch_visibility(context)  
         return {"FINISHED"}
+    
+
+class VIEW3D_OT_load_configuration(bpy.types.Operator, ImportHelper):
+    """Permet à l'utilisateur de charger une configuration d'algorithme prédéfinie au format JSON"""
+    bl_idname = "wm.load_configuration"
+    bl_label = "Charger une configuration"     
+    bl_options = {"REGISTER", "UNDO"} 
+
+    filter_glob: bpy.props.StringProperty(
+        default="*.json",
+        options={"HIDDEN"},
+    )
+
+    def load_configuration(self, context):
+        # Récupération de la configuration chargée
+        config = Globals.last_loaded_configuration
+        # Récupération de la classe de propriétés associée à l'algorithme chargé
+        algorithm_properties = getattr(context.scene, config["algorithm"], None)
+        if algorithm_properties is not None:
+            for property_name, value in config["properties"].items():
+                setattr(algorithm_properties, property_name, value)
+        else:
+            raise RuntimeError("Une erreur s'est produite lors de la lecture du fichier de configuration JSON. Vérifiez que la structure contient bien un champ 'algorithm'.")
+
+    def execute(self, context):
+        # Récupération de l'extension du fichier chargé
+        file_extension = self.filepath.rsplit('.')[-1].lower()
+        if file_extension != "json":
+            raise RuntimeError("Le fichier importé doit être au format json.")
+        else:
+            print(f"Chargement du fichier: {self.filepath}...")
+            try:
+                with open(self.filepath) as f:
+                    Globals.last_loaded_configuration = json.load(f)
+                    self.load_configuration(context)
+            except Exception as e:
+                print(f"Une erreur s'est produite lors de la tentative d'ouverture du fichier {self.filepath}.")
+                raise e
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        # Ouverture de l'explorateur de fichiers
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+    
+
+class VIEW3D_OT_save_configuration(bpy.types.Operator, ExportHelper):
+    """Permet à l'utilisateur d'exporter une configuration d'algorithme prédéfinie au format JSON"""
+    bl_idname = "wm.export_configuration"
+    bl_label = "Exporter cette configuration"     
+    bl_options = {"REGISTER", "UNDO"} 
+
+    filter_glob: bpy.props.StringProperty(
+        default="*.json",
+        options={"HIDDEN"},
+    )
+    filename_ext = ".json"
+
+    def __init__(self):
+        self.data = {}
+
+    def get_current_configuration(self, context):
+        # Création d'une variable qui contiendra le nom du fichier à exporter
+        filename = ""
+        # Récupération du nom de l'algorithme courant
+        algorithm_name = context.scene.api_properties.algorithm_choice.lower()
+        # Ajout du nom de l'algorithme dans le nom du fichier
+        filename += algorithm_name + "_"
+        # et dans le dictionnaire
+        self.data["algorithm"] = algorithm_name
+        # Récupération de la classe de propriétés associée à l'algorithme sélectionné
+        algorithm_properties = getattr(context.scene, algorithm_name, None)
+        if algorithm_properties is not None:
+            # Création d'un champ dans le dictionnaire contenant l'ensemble des propriétés de l'algorithme
+            self.data["properties"] = {}
+            # parcours des noms des propriétés associées à l'algorithme courant
+            for prop_attribute in Globals.algorithm_properties_name[algorithm_name]:
+                # Récupération de la valeur associée à la propriété courante
+                value = getattr(algorithm_properties, prop_attribute)
+                if isinstance(value, (float,)):
+                    value = round(value,2)
+                # stockage de la valeur associée au nom de la propriété dans le dictionnaire des données
+                self.data["properties"][prop_attribute] = value
+                # et mise à jour du nom du fichier
+                filename += prop_attribute + "_" + str(value).replace('.', '_') + "_"
+        else:
+            pass
+        return filename[:-1]
+
+
+    def execute(self, context):
+        try:
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=4)
+            print(f"Exportation du fichier: {self.filepath} réussie.")
+            return {"FINISHED"}
+        except Exception as e:
+            print(f"Une erreur s'est produite lors de l'exportation du fichier {self.filepath} : {e}.")
+            return {"CANCELLED"}        
+
+    def invoke(self, context, event):
+        # Récupération du nom du fichier à exporter
+        filename = self.get_current_configuration(context)
+        self.filepath = filename + self.filename_ext
+        # Ouverture du gestionnaire de fichier de Blender
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
 
 
 class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
@@ -495,55 +614,77 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
     bl_category = "API C++"  # nom du panneau dans la barre latérale
 
     def draw(self, context):
-        layout = self.layout
-        row = layout.row()
-        row.label(text="Choisissez un algorithme à appliquer sur le maillage courant :")
-        row = layout.row()
         # Récupération du groupe de propriétés de l'API
         api_properties = context.scene.api_properties
+        layout = self.layout
+        row = layout.row()
+        row.label(text="Choisissez une opération :")
+        row = layout.row()
         row.scale_y = 1.4
-        row.prop(api_properties, "algorithm_choice")
-        
-        # affichage des propriétés en fonction de l'algorithme choisi par l'utilisateur
-        # Récupération du nom de l'algorithme courant
-        algorithm_name = api_properties.algorithm_choice
-        # Globals.algorithm_properties[current_choice.algorithm_choice]["drawing_properties"](layout, context)
-        draw_properties(layout, context, algorithm_name)
-        # création d'une nouvelle ligne dans laquelle nous ajoutons un bouton (instance de la classe VIEW3D_OT_api_cgal)
-        if algorithm_name != "DEFAULT":
-             # Récupération de la description de l'algorithme
-            description = Globals.algorithm_description[algorithm_name.lower()]
-            row = layout.row()
-            row.label(text="Description de l'algorithme :", icon="QUESTION")
-            box = layout.box()
-            # Récupération du booléen gérant l'affichage ou le masquage partiel de la description de l'algorithme
-            description_is_hidden = context.scene.description_is_hidden
-            label = "Etendre la description" if description_is_hidden else "Réduire la description"
-            if description_is_hidden:
-                box.label(text=description[0][:-3] + "...")
-            else:
-                for line in description:
-                    box.label(text=line)
-            row = box.row()
-            row.scale_y = 1.2
-            row.operator(VIEW3D_OT_display_description.bl_idname, text=label)
-            row = layout.row()
-            row.enabled = is_option_selected(context, algorithm_name)
-            row.scale_y = 1.7
-            # l'opérateur est référencé par un nom correspondant à la valeur de l'attribut bl_idname de la classe
-            row.operator(VIEW3D_OT_execute_algorithm.bl_idname, text="Appliquer l'algorithme")
-        else:
-            pass
+        row.prop(api_properties, "configuration_choice")
 
-        if api_properties.result_infos != "":
-            for line in api_properties.result_infos.splitlines():
-                layout.label(text=line)
+        # Récupération du choix de la configuration de l'utilisateur
+        configuration_choice = api_properties.configuration_choice
+        if configuration_choice != "DEFAULT":
+            # Si l'utilisateur a choisi d'importer un algorithme prédéfini
+            if configuration_choice == "IMPORT_CONFIG":
+                row = layout.row()
+                row.scale_y = 1.4
+                row.operator(VIEW3D_OT_load_configuration.bl_idname, text="Charger une configuration" if Globals.last_loaded_configuration is not None else "Charger une nouvelle configuration")
+            # Sinon l'utilisateur a choisi d'appliquer un algorithme en personnalisant les paramètres
+            else:
+                row = layout.row()
+                row.label(text="Choisissez un algorithme à appliquer sur le maillage courant :")
+                row = layout.row()
+                row.scale_y = 1.4
+                row.prop(api_properties, "algorithm_choice")
+                
+            # affichage des propriétés en fonction de l'algorithme choisi par l'utilisateur
+            # Récupération du nom de l'algorithme courant (provenant soit d'une configuration prédéfinie soit d'un choix de l'utilisateur)
+            algorithm_name = api_properties.algorithm_choice if configuration_choice == "CHOSE_ALGORITHM" else Globals.last_loaded_configuration.get("algorithm", "DEFAULT")
+            # Globals.algorithm_properties[current_choice.algorithm_choice]["drawing_properties"](layout, context)
+            # création d'une nouvelle ligne dans laquelle nous ajoutons un bouton (instance de la classe VIEW3D_OT_api_cgal)
+            if algorithm_name != "DEFAULT":
+                box = layout.box()
+                draw_properties(box, context, algorithm_name)
+                row = box.row()
+                row.enabled = is_option_selected(context, algorithm_name)
+                row.scale_y = 1.4
+                row.operator(VIEW3D_OT_save_configuration.bl_idname, text="Sauvegarder la configuration")
+                # Récupération de la description de l'algorithme
+                description = Globals.algorithm_description[algorithm_name.lower()]
+                row = layout.row()
+                row.label(text="Description de l'algorithme :", icon="QUESTION")
+                box = layout.box()
+                # Récupération du booléen gérant l'affichage ou le masquage partiel de la description de l'algorithme
+                description_is_hidden = api_properties.description_is_hidden                 
+                if description_is_hidden:
+                    box.label(text=description[0][:-3] + "...")
+                else:
+                    for line in description:
+                        box.label(text=line)
+                row = box.row()
+                row.scale_y = 1.2
+                row.operator(VIEW3D_OT_display_description.bl_idname, text="Etendre la description" if description_is_hidden else "Réduire la description")
+                row = layout.row()
+                row.enabled = is_option_selected(context, algorithm_name)
+                row.scale_y = 1.7
+                # l'opérateur est référencé par un nom correspondant à la valeur de l'attribut bl_idname de la classe
+                row.operator(VIEW3D_OT_execute_algorithm.bl_idname, text="Appliquer l'algorithme")
+            else:
+                pass
+
+            if api_properties.result_infos != "":
+                for line in api_properties.result_infos.splitlines():
+                    layout.label(text=line)
+            else:
+                pass
         else:
             pass
 
 
 ## Fonctions d'enregistrement, de désincription et de référencement des groupe de propriétés des classes de l'API
-classes = (VIEW3D_PT_api_cgal_panel, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
+classes = (VIEW3D_PT_api_cgal_panel, VIEW3D_OT_load_configuration, VIEW3D_OT_save_configuration, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
 
 def algorithm_properties_registering():
     # Enregistrement toutes les classes de propriétés des algorithmes de l'API
@@ -573,7 +714,6 @@ def register():
     # Enregistrement des classes basiques (panneau, boutons, ...) dans le registre de Blender
     for cls in classes:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.description_is_hidden = bpy.props.BoolProperty(name="Afficher/Masquer la description de l'algorithme", default=True)
     load_algorithms()
     # Enregistrement des classes de propriétés des différents algorithmes de l'API ainsi que la liste déroulante
     # algorithm_properties_registering()
@@ -587,7 +727,6 @@ def unregister():
     # Désinscription de la liste déroulante
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-    del bpy.types.Scene.description_is_hidden
     # Suppression des pointeurs référençant les propriétés des algorithmes de l'API
     delete_property_pointers()
 
