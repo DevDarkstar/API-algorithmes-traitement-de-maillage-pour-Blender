@@ -259,7 +259,7 @@ class Globals:
                      "faces_coloration": set_face_colors, # Définit des nouvelles couleurs pour les faces du maillage
                      "new_mesh": set_new_mesh} # Crée un nouveau maillage
     # Table permettant d'associer à un attribut (présent sous la forme d'un string) une classe de propriétés (héritant de PropertyGroup) que l'attribut
-    # référencera à l'aide d'un PointerProperty. Exemple : "segmentation_cgal' : CgalSegmentationProperties
+    # référencera à l'aide d'un PointerProperty. Exemple : 'segmentation_cgal' : CgalSegmentationProperties
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"
     properties_table = {}
     # Table associant à chaque algorithme la liste des noms de ses propriétés sous la forme d'un tuple. 
@@ -448,6 +448,7 @@ def load_algorithms():
         default=""))
     # tout comme une propriété permettant d'afficher et de masquer la description des algorithmes dans l'API Blender
     setattr(api_class, "description_is_hidden", bpy.props.BoolProperty(name="Afficher/Masquer la description de l'algorithme", default=True))
+    setattr(api_class, "configuration_is_loaded", bpy.props.BoolProperty(name="test", default=False))
     # Stockage de la classe nouvellement créée dans une table permettant de la désinscrire du registre de Blender lors de l'appel de la fonction "unregister"
     Globals.properties_table["api_properties"] = api_class
     # Référencement du groupe de propriétés par un objet de Blender (ici la scène)
@@ -534,6 +535,7 @@ class VIEW3D_OT_load_configuration(bpy.types.Operator, ImportHelper):
             except Exception as e:
                 print(f"Une erreur s'est produite lors de la tentative d'ouverture du fichier {self.filepath}.")
                 raise e
+            setattr(context.scene.api_properties, "configuration_is_loaded", True)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -626,11 +628,21 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
         # Récupération du choix de la configuration de l'utilisateur
         configuration_choice = api_properties.configuration_choice
         if configuration_choice != "DEFAULT":
+            algorithm_name = ""
             # Si l'utilisateur a choisi d'importer un algorithme prédéfini
             if configuration_choice == "IMPORT_CONFIG":
+                # Récupération du booléen indiquant si l'utilisateur a chargé une configuration
+                configuration_is_loaded = api_properties.configuration_is_loaded
+                if configuration_is_loaded:
+                    box = layout.box()
+                    row = box.row()
+                    row.label(text="algorithme : " + Globals.last_loaded_configuration["algorithm"])
+                    for key, value in Globals.last_loaded_configuration["properties"].items():
+                        row = box.row()
+                        row.label(text=key + " : " + str(value))
                 row = layout.row()
                 row.scale_y = 1.4
-                row.operator(VIEW3D_OT_load_configuration.bl_idname, text="Charger une configuration" if Globals.last_loaded_configuration is not None else "Charger une nouvelle configuration")
+                row.operator(VIEW3D_OT_load_configuration.bl_idname, text="Charger une configuration" if not configuration_is_loaded else "Charger une nouvelle configuration")
             # Sinon l'utilisateur a choisi d'appliquer un algorithme en personnalisant les paramètres
             else:
                 row = layout.row()
@@ -639,46 +651,46 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
                 row.scale_y = 1.4
                 row.prop(api_properties, "algorithm_choice")
                 
-            # affichage des propriétés en fonction de l'algorithme choisi par l'utilisateur
-            # Récupération du nom de l'algorithme courant (provenant soit d'une configuration prédéfinie soit d'un choix de l'utilisateur)
-            algorithm_name = api_properties.algorithm_choice if configuration_choice == "CHOSE_ALGORITHM" else Globals.last_loaded_configuration.get("algorithm", "DEFAULT")
-            # Globals.algorithm_properties[current_choice.algorithm_choice]["drawing_properties"](layout, context)
-            # création d'une nouvelle ligne dans laquelle nous ajoutons un bouton (instance de la classe VIEW3D_OT_api_cgal)
-            if algorithm_name != "DEFAULT":
-                box = layout.box()
-                draw_properties(box, context, algorithm_name)
-                row = box.row()
-                row.enabled = is_option_selected(context, algorithm_name)
-                row.scale_y = 1.4
-                row.operator(VIEW3D_OT_save_configuration.bl_idname, text="Sauvegarder la configuration")
-                # Récupération de la description de l'algorithme
-                description = Globals.algorithm_description[algorithm_name.lower()]
-                row = layout.row()
-                row.label(text="Description de l'algorithme :", icon="QUESTION")
-                box = layout.box()
-                # Récupération du booléen gérant l'affichage ou le masquage partiel de la description de l'algorithme
-                description_is_hidden = api_properties.description_is_hidden                 
-                if description_is_hidden:
-                    box.label(text=description[0][:-3] + "...")
+                # affichage des propriétés en fonction de l'algorithme choisi par l'utilisateur
+                # Récupération du nom de l'algorithme courant (provenant soit d'une configuration prédéfinie soit d'un choix de l'utilisateur)
+                algorithm_name = api_properties.algorithm_choice
+                # Globals.algorithm_properties[current_choice.algorithm_choice]["drawing_properties"](layout, context)
+                # création d'une nouvelle ligne dans laquelle nous ajoutons un bouton (instance de la classe VIEW3D_OT_api_cgal)
+                if algorithm_name != "DEFAULT":
+                    box = layout.box()
+                    draw_properties(box, context, algorithm_name)
+                    row = box.row()
+                    row.enabled = is_option_selected(context, algorithm_name)
+                    row.scale_y = 1.4
+                    row.operator(VIEW3D_OT_save_configuration.bl_idname, text="Sauvegarder la configuration")
+                    # Récupération de la description de l'algorithme
+                    description = Globals.algorithm_description[algorithm_name.lower()]
+                    row = layout.row()
+                    row.label(text="Description de l'algorithme :", icon="QUESTION")
+                    box = layout.box()
+                    # Récupération du booléen gérant l'affichage ou le masquage partiel de la description de l'algorithme
+                    description_is_hidden = api_properties.description_is_hidden                 
+                    if description_is_hidden:
+                        box.label(text=description[0][:-3] + "...")
+                    else:
+                        for line in description:
+                            box.label(text=line)
+                    row = box.row()
+                    row.scale_y = 1.2
+                    row.operator(VIEW3D_OT_display_description.bl_idname, text="Etendre la description" if description_is_hidden else "Réduire la description")
                 else:
-                    for line in description:
-                        box.label(text=line)
-                row = box.row()
-                row.scale_y = 1.2
-                row.operator(VIEW3D_OT_display_description.bl_idname, text="Etendre la description" if description_is_hidden else "Réduire la description")
-                row = layout.row()
-                row.enabled = is_option_selected(context, algorithm_name)
-                row.scale_y = 1.7
-                # l'opérateur est référencé par un nom correspondant à la valeur de l'attribut bl_idname de la classe
-                row.operator(VIEW3D_OT_execute_algorithm.bl_idname, text="Appliquer l'algorithme")
-            else:
-                pass
+                    pass
 
-            if api_properties.result_infos != "":
-                for line in api_properties.result_infos.splitlines():
-                    layout.label(text=line)
-            else:
-                pass
+                if api_properties.result_infos != "":
+                    for line in api_properties.result_infos.splitlines():
+                        layout.label(text=line)
+                else:
+                    pass
+            row = layout.row()
+            row.enabled = is_option_selected(context, algorithm_name) if api_properties.configuration_choice == "CHOSE_ALGORITHM" else True 
+            row.scale_y = 1.7
+            # l'opérateur est référencé par un nom correspondant à la valeur de l'attribut bl_idname de la classe
+            row.operator(VIEW3D_OT_execute_algorithm.bl_idname, text="Appliquer l'algorithme")
         else:
             pass
 
