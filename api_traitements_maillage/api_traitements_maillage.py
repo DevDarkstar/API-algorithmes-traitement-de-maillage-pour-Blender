@@ -25,15 +25,15 @@ def draw_properties(layout, context, algorithm_name):
     # Récupération de la classe de propriétés associée à l'algorithme sélectionné
     algorithm_properties = getattr(context.scene, algorithm_name.lower(), None)
     if algorithm_properties is not None:
+        col = layout.column(align=True)
+        col.scale_y = 1.4
         # affichage des propriétés de l'algorithme
         for prop_attribute in Globals.algorithm_properties[algorithm_name.lower()].keys():
-            row = layout.row()
-            row.scale_y = 1.4
-            row.prop(algorithm_properties, prop_attribute)
+            col.prop(algorithm_properties, prop_attribute)
     else:
         pass
     # Ajout des boutons d'importation et d'exportation des configurations prédéfinies
-    row = layout.row()
+    row = layout.row(align=True)
     row.scale_y = 1.4
     col = row.column(align=True)
     col.operator(VIEW3D_OT_load_configuration.bl_idname, text="Importer")
@@ -667,6 +667,7 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
         # Récupération du groupe de propriétés de l'API
         api_properties = context.scene.api_properties
         layout = self.layout
+        layout.use_property_split = False
 
         row = layout.row()
         row.label(text="Choisissez un algorithme à appliquer sur le maillage courant :")
@@ -680,8 +681,7 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
         # Globals.algorithm_properties[current_choice.algorithm_choice]["drawing_properties"](layout, context)
         # création d'une nouvelle ligne dans laquelle nous ajoutons un bouton (instance de la classe VIEW3D_OT_api_cgal)
         if algorithm_name != "DEFAULT":
-            box = layout.box()
-            draw_properties(box, context, algorithm_name)
+            draw_properties(layout, context, algorithm_name)
             # Récupération de la description de l'algorithme
             description = Globals.algorithm_description[algorithm_name.lower()]
             row = layout.row()
