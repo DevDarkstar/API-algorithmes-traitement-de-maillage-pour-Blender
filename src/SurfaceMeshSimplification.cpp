@@ -12,9 +12,9 @@ using namespace simplification;
 SurfaceMeshSimplification::SurfaceMeshSimplification(const py::dict& data) : m_surface_mesh()
 {
     //On caste toutes les données provenant de notre structure de données python vers des types C++
-    const std::vector<int>& faces = data["faces"].cast<std::vector<int>>();
-    const std::vector<double>& vertices = data["vertices"].cast<std::vector<double>>();
-    this->m_stop_ratio = data["decimation_factor"].cast<double>();
+    const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
+    const std::vector<double> vertices = data["vertices"].cast<std::vector<double>>();
+    this->m_stop_ratio = data["params"]["decimation_factor"].cast<double>();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;

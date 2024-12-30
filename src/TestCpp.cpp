@@ -4,7 +4,7 @@ namespace py = pybind11;
 
 TestCpp::TestCpp(const py::dict& data) {
     //Toutes les données, provenant de notre structure de données python, sont castées vers leurs types C++ idoines
-    this->m_output_option = data["output_option"].cast<std::string>();
+    this->m_output_option = data["params"]["output_option"].cast<std::string>();
 }
 
 void TestCpp::compute_algorithm(){

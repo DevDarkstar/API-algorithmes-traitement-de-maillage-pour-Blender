@@ -12,9 +12,9 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
     //Toutes les données, provenant de notre structure de données python, sont castées vers leurs types C++ idoines
     const std::vector<double> vertices = data["vertices"].cast<std::vector<double>>();
     const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
-    this->m_clusters = data["clusters"].cast<int>();
-    this->m_smoothness = data["smoothness"].cast<double>();
-    this->m_output_option = data["output_option"].cast<std::string>();
+    this->m_clusters = data["params"]["clusters"].cast<int>();
+    this->m_smoothness = data["params"]["smoothness"].cast<double>();
+    this->m_output_option = data["params"]["output_option"].cast<std::string>();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;

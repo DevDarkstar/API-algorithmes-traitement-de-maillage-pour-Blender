@@ -7,14 +7,14 @@
 
 namespace py = pybind11;
 
-std::map<std::string, std::function<Algorithm*(const pybind11::dict&)>> Router::algorithms_table = 
-                                                    {{"segmentation_cgal", [](const py::dict& data){ return new SurfaceMeshSegmentation(data); }},
-                                                     {"simplification_cgal", [](const py::dict& data){ return new SurfaceMeshSimplification(data); }},
-                                                     {"area_computation_cgal", [](const py::dict& data){ return new SurfaceAreaComputation(data); }},
-                                                     {"test_cpp", [](const py::dict& data){ return new TestCpp(data); }}};
+std::vector<std::map<std::string, std::function<Algorithm*(const pybind11::dict&)>>> Router::algorithms_table = 
+                                                           {{{"segmentation_cgal", [](const py::dict& data){ return new SurfaceMeshSegmentation(data); }},
+                                                             {"simplification_cgal", [](const py::dict& data){ return new SurfaceMeshSimplification(data); }},
+                                                             {"area_computation_cgal", [](const py::dict& data){ return new SurfaceAreaComputation(data); }},
+                                                             {"test_cpp", [](const py::dict& data){ return new TestCpp(data); }}}};
 
 
-Router::Router(std::string algorithm_name, py::dict data): m_current_algorithm(algorithms_table[algorithm_name](data))
+Router::Router(int id, std::string algorithm_name, py::dict data): m_current_algorithm(algorithms_table[id][algorithm_name](data))
 {}
 
 Router::~Router()
@@ -38,7 +38,7 @@ PYBIND11_MODULE(algorithms_api, handle){
     handle.doc() = "Classe implémentant divers algorithmes CGAL permettant d'effectuer des taritements sur des maillages";
 
     py::class_<Router>(handle, "Router")
-        .def(py::init<std::string, py::dict>())
+        .def(py::init<int, std::string, py::dict>())
         .def("init", &Router::init)
         .def("get_result", &Router::get_result);
 }
