@@ -14,7 +14,6 @@ import bpy
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 import bmesh
 import numpy as np
-import random
 import json
 import os
 from algorithms_api import Router
@@ -130,16 +129,25 @@ def set_face_colors(context, data):
     # et de son maillage associé
     mesh = object.data
     
-    # Récupération du tableau des identifiants des segments obtenus
+    # Récupération du tableau des couleurs du maillage
     colors = data.get("colors", None)
     # Récupération du nombre de segments obtenus
-    colors_number = data.get("colors_number", None)
-    if colors is not None and colors_number is not None:
+    # colors_number = data.get("colors_number", None)
+    if colors is not None:
         # Récupération du nom de l'algorithme choisi par l'utilisateur
         current_algorithm_name = context.scene.api_properties.algorithm_choice.lower()
 
         # Récupération du groupe de propriétés associé à l'algorithme courant
         property_group = getattr(context.scene, current_algorithm_name, None)
+
+        # Création ou récupération de l'attribut de couleurs (vertex color layout) permettant de gérer les couleurs des faces du maillage
+        if "Face_Col" not in mesh.color_attributes:
+            vertex_color_layout = mesh.color_attributes.new(name="Face_Col", type="BYTE_COLOR", domain="FACE")
+        else:
+            vertex_color_layout = mesh.color_attributes["Face_Col"]
+
+        # Stockage des informations de couleurs dans l'attribut
+        vertex_color_layout.data.foreach_set("color", colors)
 
         # Récupération si présente, l'option permettant de supprimer les matériaux déjà associés au maillage courant
         delete_materials_option = getattr(property_group, "delete_materials", None)
@@ -152,27 +160,39 @@ def set_face_colors(context, data):
         # Récupération du nombre de matériaux déjà associés au maillage (servira d'offset pour affecter le bon matériau à la bonne face)
         nb_materials = len(mesh.materials)
 
-        # Création des matériaux en fonction du nombre de segments
-        for _ in range(colors_number):
-            # Création d'une couleur aléatoire
-            red = random.random()
-            green = random.random()
-            blue = random.random()
+        # Création d'un nouveau matériau permettant d'afficher les couleurs des faces du maillage
+        material = bpy.data.materials.new(name="Face_Color")
 
-            color = (red, green, blue, 1.0)
+        # affectation du nouveau matériau au maillage
+        mesh.materials.append(material)
+        # utilisation des noeuds pour ce matériau
+        material.use_nodes = True
 
-            material = bpy.data.materials.new(name="Material")
-
-            # Définition de la couleur du matériau
-            material.diffuse_color = color
-
-            # affectation du nouveau matériau au maillage
-            mesh.materials.append(material)
+        # Récupération de l'ensemble des noeuds du matériau et de l'ensemble des liens inter-noeuds
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
         
-        # Parcours des faces du maillage et affectation du matériau correspondant à l'indice du segment obtenu
-        # création d'un itérateur sur le tableau numpy des identifiants de segments
-        for face, id in zip(mesh.polygons, colors):
-            face.material_index = id + nb_materials 
+        # Création d'un noeud "Attribut"
+        attribute = nodes.new(type="ShaderNodeAttribute")
+        # définition du nom de l'attribut sur "Face_Col" (couleurs des faces du maillage)
+        attribute.attribute_name = "Face_Col"
+        attribute.location = (160, 330)
+
+        # Récupération du noeud "Principled BSDF" (présent par défaut)
+        bsdf = nodes["Principled BSDF"]
+        # Création d'un lien entre la sortie "Color" du noeud "Attribut" et l'entrée "Base Color" du noeud "Principled BSDF"
+        links.new(bsdf.inputs["Base Color"], attribute.outputs["Color"])
+
+        # Désélection de tous les noeuds présents dans le matériau
+        for node in nodes:
+            node.select = False
+
+        # Affectation de l'indice du matériau nouvellement créé à toutes les faces du maillage
+        mesh.polygons.foreach_set("material_index", [nb_materials] * len(mesh.polygons))
+        mesh.update()
+
+        # Passage du mode de rendu sur "MATERIAL" afin de pouvoir visualiser le résultat
+        context.space_data.shading.type = "MATERIAL"
     else:
         raise RuntimeError("Une erreur s'est produite lors de l'affectation des couleurs aux faces du maillage.")
 
@@ -285,7 +305,7 @@ class Globals:
     # référencera à l'aide d'un PointerProperty. Exemple : 'segmentation_cgal' : CgalSegmentationProperties
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"
     properties_table = {}
-    # Table associant à chaque algorithme une liste contenant le langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire. 
+    # Table associant à chaque algorithme une liste contenant l'identifiant du langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire. 
     # Exemple : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}]
     algorithm_properties = {}
     # Table associant à chaque algorithme la liste des opérations à effectuer avant d'envoyer les données côté C++ (traitement prélable du maillage, informations du maillage à récupérer, ...)
@@ -344,6 +364,8 @@ def compute_algorithm(context):
     else:
         # Passage du contexte en mode "OBJET"
         bpy.ops.object.mode_set(mode="OBJECT")
+        # et du mode de rendu à "SOLID"
+        context.space_data.shading.type = "SOLID"
         # Préparation du maillage et récupération des données à envoyer à l'algorithme côté C++
         # Récupération de la scène
         scene = context.scene
@@ -404,7 +426,7 @@ def load_algorithms():
 
     # Parcours des données du fichier JSON
     for data in metadata.values():
-        # Récupération du nom du langage de programmation courant
+        # Récupération de l'identifiant du langage de programmation courant
         try:
             programming_language = data["language_id"]
         except Exception as e:

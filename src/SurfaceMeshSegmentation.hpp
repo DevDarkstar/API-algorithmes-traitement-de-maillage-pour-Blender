@@ -23,7 +23,7 @@ class SurfaceMeshSegmentation : public Algorithm{
 public:
     explicit SurfaceMeshSegmentation(const pybind11::dict& data);
     void compute_algorithm() override;
-    void update_segments_ids();
+    void set_segments_ids_to_colors(const size_t color_number);
 
 private:
     segmentation::Surface_mesh m_surface_mesh;

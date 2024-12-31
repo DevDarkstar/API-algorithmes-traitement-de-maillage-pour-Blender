@@ -3,7 +3,7 @@
 #include "SurfaceMeshSegmentation.hpp"
 #include "SurfaceAreaComputation.hpp"
 #include "TestCpp.hpp"
-//#include <iostream>
+#include <iostream>
 
 namespace py = pybind11;
 
@@ -21,7 +21,7 @@ Router::~Router()
 {
     delete m_current_algorithm;
     // débogage
-    // std::cout << "La mémoire allouée a Router a bien été liberée" << std::endl;
+    std::cout << "La mémoire allouée au router a bien été liberée" << std::endl;
 }
 
 void Router::init()

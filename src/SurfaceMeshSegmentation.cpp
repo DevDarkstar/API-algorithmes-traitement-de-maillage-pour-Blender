@@ -4,6 +4,7 @@
 #include <iostream>
 #include <boost/format.hpp>
 #include <stdexcept>
+#include <random>
 
 namespace py = pybind11;
 using namespace segmentation;
@@ -59,7 +60,7 @@ void SurfaceMeshSegmentation::compute_algorithm(){
  
         if(this->m_output_option == "SEGMENTS_COLOR"){
             this->m_output_data["colors_number"] = number_of_segments; 
-            this->update_segments_ids();
+            this->set_segments_ids_to_colors(number_of_segments);
             this->m_output_data["output_result"] = "faces_coloration";
         }
         else{
@@ -79,15 +80,35 @@ void SurfaceMeshSegmentation::compute_algorithm(){
     }
 }
 
-void SurfaceMeshSegmentation::update_segments_ids(){
+void SurfaceMeshSegmentation::set_segments_ids_to_colors(const size_t color_number){
     //Récupération de la property_map contenant les identifiants des segments obtenus
     const auto& segment_property_map = this->m_surface_mesh.property_map<face_descriptor, std::size_t>("f:sid").first;
-    std::vector<size_t> segments_ids;
-    segments_ids.reserve(num_faces(this->m_surface_mesh));
+    // Création des couleurs de façon aléatoire et permettant de remplir le tableau des couleurs des faces du maillage ultérieurement
+    std::vector<std::array<float, 4>> colors;
+    colors.reserve(color_number);
 
+    // Génération aléatoire des couleurs
+    // Initialisation de la génération de nombres psudo-aléatoires
+    std::random_device rd;
+    // Création du moteur de génération
+    std::default_random_engine engine(rd());
+    // Création de la méthode de génération des nombres entre 0 et 1 (ici une distribution uniforme)
+    std::uniform_real_distribution<float> distribution(0, 1);
+
+    // Génération des couleurs
+    for (int i = 0; i < color_number; i++){
+        // Ajout de la nouvelle couleur avec l'alpha dans le tableau des couleurs
+        colors.emplace_back(std::array<float, 4>{distribution(engine), distribution(engine), distribution(engine), 1.0f});
+    }
+    // Création d'un tableau pour stocker les couleurs associées aux faces du maillage et réservation de l'espace mémoire
+    std::vector<float> face_colors;
+    face_colors.reserve(num_faces(this->m_surface_mesh) * 4);
+
+    // Remplissage du tableau des couleurs des faces à partir des couleurs générées précédemment
     for(const auto& fd : faces(this->m_surface_mesh)){
-        segments_ids.push_back(segment_property_map[fd]);
+        auto color = colors[segment_property_map[fd]];
+        face_colors.insert(face_colors.cend(), color.cbegin(), color.cend());
     }
 
-    this->m_output_data["colors"] = segments_ids;
+    this->m_output_data["colors"] = face_colors;
 }
