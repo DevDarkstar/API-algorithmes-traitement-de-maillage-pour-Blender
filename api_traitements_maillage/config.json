@@ -17,7 +17,7 @@
                                     "id_name": "clusters",
                                     "type": "integer",
                                     "data": {
-                                        "name": "clusters",
+                                        "name": "Clusters",
                                         "description": "Nombre de clusters de l'algorithme de segmentation",
                                         "default": 4,
                                         "min": 2,
@@ -28,7 +28,7 @@
                                     "id_name": "smoothness",
                                     "type": "float",
                                     "data": {
-                                        "name": "finesse",
+                                        "name": "Finesse",
                                         "description": "Finesse de la segmentation (plus la valeur est élevée, plus le nombre de segments résultants le sera également)",
                                         "default": 0.5,
                                         "min": 0,
@@ -39,7 +39,7 @@
                                     "id_name": "output_option",
                                     "type": "enum",
                                     "data": {
-                                        "name": "sortie",
+                                        "name": "Sortie",
                                         "items": [
                                             {
                                                 "id": "SEGMENTS_COLOR",
@@ -58,7 +58,7 @@
                                     "id_name": "delete_materials",
                                     "type": "boolean",
                                     "data": {
-                                        "name": "suppression matériaux ?",
+                                        "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
                                         "default": "false"
                                     }                      
@@ -78,7 +78,7 @@
                                     "id_name": "decimation_factor",
                                     "type": "float",
                                     "data": {
-                                        "name": "facteur de décimation",
+                                        "name": "Facteur de décimation",
                                         "description": "Facteur de décimation du maillage",
                                         "default": 0.5,
                                         "min": 0,
@@ -110,7 +110,7 @@
                                     "id_name": "output_option",
                                     "type": "enum",
                                     "data": {
-                                        "name": "sortie",
+                                        "name": "Sortie",
                                         "items": [
                                             {
                                                 "id": "DISPLAY_TEXT",
@@ -121,6 +121,105 @@
                                                 "id": "CREATE_MESH",
                                                 "name": "Créer une pyramide",
                                                 "description": "Permet de créer une pyramide dans la fenêtre d'affichage de Blender"
+                                            }
+                                        ]
+                                    }                      
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "python": {
+        "language_id": 1,
+        "libraries": [
+            {
+                "id_name": "MeshLab",
+                "algorithms": [
+                    {
+                        "id_name": "colorize_curvature_apss",
+                        "name": "Colorisation de courbure (MeshLab)",
+                        "description": "Colorisation des sommets d'un maillage ou d'un ensemble de points en utilisant la courbure de la surface sous-jacente. Il s'agit de la variante des surfaces algébriques d'ensembles de points (APSS) qui est basée sur l'ajustement local de sphères algébriques.",
+                        "function_name": "compute_curvature_and_color_apss_per_vertex",
+                        "properties": {
+                            "class_name" : "ComputeCurvatureAndColorApssPerVertex",
+                            "data": [
+                                {
+                                    "id_name": "filterscale",
+                                    "type": "float",
+                                    "data": {
+                                        "name": "Echelle du filtre",
+                                        "description": "Echelle du filtre passe-bas spatial.",
+                                        "default": 2,
+                                        "min": 0,
+                                        "max": 20
+                                    }         
+                                },
+                                {
+                                    "id_name": "projectionaccuracy",
+                                    "type": "float",
+                                    "data": {
+                                        "name": "Précision de projection",
+                                        "description": "Valeur seuil utilisée pour arrêter les projections.",
+                                        "default": 0.01,
+                                        "min": 0,
+                                        "max": 1
+                                    }         
+                                },
+                                {
+                                    "id_name": "maxprojectioniters",
+                                    "type": "integer",
+                                    "data": {
+                                        "name": "Nombre maximal d'itérations",
+                                        "description": "Nombre maximal d'itérations pour la projection",
+                                        "default": 15,
+                                        "min": 0,
+                                        "max": 30
+                                    }  
+                                },
+                                {
+                                    "id_name": "sphericalparameter",
+                                    "type": "float",
+                                    "data": {
+                                        "name": "Paramètre sphérique",
+                                        "description": "Contrôle la courbure des sphères ajustées : 0 équivaut à un ajustement plan pur, 1 à un ajustement sphérique pur, les valeurs entre 0 et 1 donnent des résultats intermédiaires, tandis que d'autres valeurs réelles peuvent donner des résultats intéressants, mais attention aux paramètres extrêmes !.",
+                                        "default": 1,
+                                        "min": -10,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "curvaturetype",
+                                    "type": "enum",
+                                    "data": {
+                                        "name": "Type de courbure",
+                                        "items": [
+                                            {
+                                                "id": "Mean",
+                                                "name": "Moyenne",
+                                                "description": "Courbure par la moyenne" 
+                                            },
+                                            {
+                                                "id": "Gauss",
+                                                "name": "Gausienne",
+                                                "description": "Courbure Gaussienne"
+                                            },
+                                            {
+                                                "id": "K1",
+                                                "name": "K1",
+                                                "description": "Courbure K1"
+                                            },
+                                            {
+                                                "id": "K2",
+                                                "name": "K2",
+                                                "description": "Courbure K2"
+                                            },
+                                            {
+                                                "id": "ApproxMean",
+                                                "name": "Approximation de la moyenne",
+                                                "description": "Courbure par approximation de la moyenne"
                                             }
                                         ]
                                     }                      

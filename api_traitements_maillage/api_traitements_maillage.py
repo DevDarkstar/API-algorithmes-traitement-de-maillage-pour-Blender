@@ -18,6 +18,9 @@ import json
 import os
 from algorithms_api import Router
 import time
+import sys
+import pkg_resources
+import subprocess
 
 # Fonction d'affichage des différentes propriétés suivant l'algorithme choisi par l'utilisateur
 def draw_properties(layout, context, algorithm_name):
@@ -140,22 +143,24 @@ def set_face_colors(context, data):
         # Récupération du groupe de propriétés associé à l'algorithme courant
         property_group = getattr(context.scene, current_algorithm_name, None)
 
-        # Création ou récupération de l'attribut de couleurs (vertex color layout) permettant de gérer les couleurs des faces du maillage
-        if "Face_Col" not in mesh.color_attributes:
-            vertex_color_layout = mesh.color_attributes.new(name="Face_Col", type="BYTE_COLOR", domain="FACE")
-        else:
-            vertex_color_layout = mesh.color_attributes["Face_Col"]
-
-        # Stockage des informations de couleurs dans l'attribut
-        vertex_color_layout.data.foreach_set("color", colors)
-
         # Récupération si présente, l'option permettant de supprimer les matériaux déjà associés au maillage courant
         delete_materials_option = getattr(property_group, "delete_materials", None)
         # Vérification si l'utilisateur a souhaité supprimer les matériaux déjà associés au maillage
         if delete_materials_option:
             mesh.materials.clear()
+            attributes = mesh.attributes
+            for i in range(len(attributes) - 1, -1, -1):
+                name = attributes[i].name
+                if name.split('.')[0] == "Face_Col":
+                    attributes.remove(attributes[i])
         else:
             pass
+
+        # Création de l'attribut de couleurs (vertex color layout) permettant de gérer les couleurs des faces du maillage
+        vertex_color_layout = mesh.color_attributes.new(name="Face_Col", type="BYTE_COLOR", domain="FACE")
+
+        # Stockage des informations de couleurs dans l'attribut
+        vertex_color_layout.data.foreach_set("color", colors)
 
         # Récupération du nombre de matériaux déjà associés au maillage (servira d'offset pour affecter le bon matériau à la bonne face)
         nb_materials = len(mesh.materials)
@@ -175,7 +180,7 @@ def set_face_colors(context, data):
         # Création d'un noeud "Attribut"
         attribute = nodes.new(type="ShaderNodeAttribute")
         # définition du nom de l'attribut sur "Face_Col" (couleurs des faces du maillage)
-        attribute.attribute_name = "Face_Col"
+        attribute.attribute_name = vertex_color_layout.name
         attribute.location = (160, 330)
 
         # Récupération du noeud "Principled BSDF" (présent par défaut)
@@ -217,7 +222,7 @@ def create_float_property(data):
         default=default_value,  # Valeur par défaut
         min=data.get("min", 0),  # Valeur minimale
         max=data.get("max", 1),  # Valeur maximale
-        step=data.get("step", 5)), default_value  # Incrémentation pour le curseur (une valeur "step" de 5 pour une FloatProperty indique un pas de 0.05)
+        step=data.get("step", 1)), default_value  # Incrémentation pour le curseur (une valeur "step" de 1 pour une FloatProperty indique un pas de 0.01)
 
 
 # Création d'une BoolProperty à la volée
@@ -305,8 +310,8 @@ class Globals:
     # référencera à l'aide d'un PointerProperty. Exemple : 'segmentation_cgal' : CgalSegmentationProperties
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"
     properties_table = {}
-    # Table associant à chaque algorithme une liste contenant l'identifiant du langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire. 
-    # Exemple : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}]
+    # Table associant à chaque algorithme une liste contenant l'identifiant du langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire et le nom de la function utilisée pour réaliser l'algorithme (cas de MeshLab). 
+    # Exemple : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}, ""]
     algorithm_properties = {}
     # Table associant à chaque algorithme la liste des opérations à effectuer avant d'envoyer les données côté C++ (traitement prélable du maillage, informations du maillage à récupérer, ...)
     # Exemple : "segmentation_cgal' : ["triangulation", "vertex_coordinates", "face_indices"]
@@ -380,8 +385,11 @@ def compute_algorithm(context):
         # et exécution des différentes opérations pré-envoi des données
         for operation in Globals.algorithm_input_pipeline[algorithm_name]:
             Globals.inputs_factory[operation](object, data)
+
         # Récupération des données de l'algorithme courant
         algorithm_data = Globals.algorithm_properties[algorithm_name]
+        # Ajout du nom de la fonction utilisée pour réaliser l'algorithme
+        data["function"] = algorithm_data[2]
         # Récupération du groupe de propriété associé à l'algorithme choisi (si présent)
         # et stockage des valeurs de l'ensemble des proprétés dans le dictionnaire data
         property_group = getattr(scene, algorithm_name, None)
@@ -407,6 +415,21 @@ def compute_algorithm(context):
         print(f"Temps d'exécution de l'algorithme : {end-start}s")
         # gestion des résultats en fonction de la requête initiale de l'utilisateur
         Globals.outputs_table[results.get("output_result")](context, results)
+
+
+def load_modules():
+    required_modules = {"pymeshlab"}
+    installed_modules = {pkg.key for pkg in pkg_resources.working_set}
+    missing_modules = required_modules - installed_modules
+
+    # Si le module pymeshlab est manquant
+    if missing_modules:
+        # pymeshlab permet d'accéder aux fonctions du logiciel MeshLab
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pymeshlab"])
+        print("Installation des modules requis terminée.")
+    # Sinon le module est déjà installé
+    else:
+        print("Les modules requis sont déjà installés.")
 
 
 def load_algorithms():
@@ -457,6 +480,7 @@ def load_algorithms():
                         Globals.algorithm_input_pipeline[algorithm_name] = algorithm.get("input", [])
                         # Initialisation de la liste dans la table "algorithm_properties" avec le langage de programmation utilisé et qui contiendra le nom des propriétés de l'algorithme courant et leurs valeurs par défaut associées
                         Globals.algorithm_properties[algorithm_name] = [programming_language]
+                        properties_dict = {}
                         # Récupération du dictionnaire des propriétés de l'algorithme courant
                         properties = algorithm.get("properties", None)
                         if properties is not None:
@@ -487,7 +511,9 @@ def load_algorithms():
                             # et référencement de la classe par un attribut
                             setattr(bpy.types.Scene, algorithm_name, bpy.props.PointerProperty(type=property_class))
                         else:
-                            pass
+                            Globals.algorithm_properties[algorithm_name].append(properties_dict)
+                        # Ajout de la fonction utilisée pour l'algorithme (cas de MeshLab)
+                        Globals.algorithm_properties[algorithm_name].append(algorithm.get("function_name", ""))                   
         else:
             pass
 
@@ -789,6 +815,7 @@ def register():
     # Enregistrement des classes basiques (panneau, boutons, ...) dans le registre de Blender
     for cls in classes:
         bpy.utils.register_class(cls)
+    load_modules()
     load_algorithms()
     # Enregistrement des classes de propriétés des différents algorithmes de l'API ainsi que la liste déroulante
     # algorithm_properties_registering()
