@@ -19,9 +19,7 @@ import os
 from algorithms_api import Router
 import time
 import sys
-import platform
 import subprocess
-import pkg_resources
 
 # Fonction d'affichage des différentes propriétés suivant l'algorithme choisi par l'utilisateur
 def draw_properties(layout, context, algorithm_name):
@@ -419,32 +417,21 @@ def compute_algorithm(context):
 
 
 def load_modules():
-    os_name = os.name
-    # Si l'extension est installée sous Windows
-    if os_name == "nt":
-        python_exe = os.path.join(sys.prefix, "bin", "python.exe")
-    # sinon si l'extension est instalée sous Linux
-    elif os_name == "posix" and platform.system() == "Linux":
-        python_exe = os.path.join(sys.prefix, 'bin', 'python3.11')
-    else:
-        raise RuntimeError(f"Votre système d'exploitation {os_name} n'est pas pris en charge par l'extension.")
+    # Nous vérifions ensuite que le ou les modules nécessaires sont bien installés
+    # récupération du chemin absolu vers les modules tiers installés dans Blender
+    modules_path = bpy.utils.user_resource("SCRIPTS", path="modules")
 
-    required_modules = {"pymeshlab"}
-    installed_modules = {pkg.key for pkg in pkg_resources.working_set}
-    missing_modules = required_modules - installed_modules
-
-    # Si le module pymeshlab est manquant
-    if missing_modules:
+    # Si un des modules est manquant
+    if not os.path.isdir(os.path.join(modules_path, "pymeshlab")):
         # mise à niveau de pip
-        subprocess.call([python_exe, "-m", "ensurepip"])
-        subprocess.call([python_exe, "-m", "pip", "install", "--upgrade", "pip"])
-        # installation du ou des modules requis
-        subprocess.call([python_exe, "-m", "pip", "install", "pymeshlab"])
-        print("Installation du ou des modules requis par l'extension réussie.")
-        
+        subprocess.run([sys.executable, "-m", "ensurepip"])
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
+        # Nous vérifions s'il est bien installé dans l'environnement python de Blender
+        subprocess.run([sys.executable, "-m", "pip", "install", "pymeshlab", "-t", modules_path])
+        print("Installation des modules requis terminée.")
+    # Sinon le module est déjà installé
     else:
-        print("Le ou les modules requis sont déjà installés.")
-        # subprocess.check_call([python_exe, "-m", "pip", "uninstall", "pymeshlab", "-y"])
+        print("Les modules requis sont déjà installés.")
 
 
 def load_algorithms():
