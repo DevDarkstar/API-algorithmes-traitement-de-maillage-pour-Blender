@@ -19,8 +19,9 @@ import os
 from algorithms_api import Router
 import time
 import sys
-import pkg_resources
+import platform
 import subprocess
+import pkg_resources
 
 # Fonction d'affichage des différentes propriétés suivant l'algorithme choisi par l'utilisateur
 def draw_properties(layout, context, algorithm_name):
@@ -418,18 +419,32 @@ def compute_algorithm(context):
 
 
 def load_modules():
+    os_name = os.name
+    # Si l'extension est installée sous Windows
+    if os_name == "nt":
+        python_exe = os.path.join(sys.prefix, "bin", "python.exe")
+    # sinon si l'extension est instalée sous Linux
+    elif os_name == "posix" and platform.system() == "Linux":
+        python_exe = os.path.join(sys.prefix, 'bin', 'python3.11')
+    else:
+        raise RuntimeError(f"Votre système d'exploitation {os_name} n'est pas pris en charge par l'extension.")
+
     required_modules = {"pymeshlab"}
     installed_modules = {pkg.key for pkg in pkg_resources.working_set}
     missing_modules = required_modules - installed_modules
 
     # Si le module pymeshlab est manquant
     if missing_modules:
-        # pymeshlab permet d'accéder aux fonctions du logiciel MeshLab
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pymeshlab"])
-        print("Installation des modules requis terminée.")
-    # Sinon le module est déjà installé
+        # mise à niveau de pip
+        subprocess.call([python_exe, "-m", "ensurepip"])
+        subprocess.call([python_exe, "-m", "pip", "install", "--upgrade", "pip"])
+        # installation du ou des modules requis
+        subprocess.call([python_exe, "-m", "pip", "install", "pymeshlab"])
+        print("Installation du ou des modules requis par l'extension réussie.")
+        
     else:
-        print("Les modules requis sont déjà installés.")
+        print("Le ou les modules requis sont déjà installés.")
+        # subprocess.check_call([python_exe, "-m", "pip", "uninstall", "pymeshlab", "-y"])
 
 
 def load_algorithms():
@@ -812,10 +827,10 @@ def delete_property_pointers():
 
 
 def register():
+    load_modules()
     # Enregistrement des classes basiques (panneau, boutons, ...) dans le registre de Blender
     for cls in classes:
         bpy.utils.register_class(cls)
-    load_modules()
     load_algorithms()
     # Enregistrement des classes de propriétés des différents algorithmes de l'API ainsi que la liste déroulante
     # algorithm_properties_registering()
