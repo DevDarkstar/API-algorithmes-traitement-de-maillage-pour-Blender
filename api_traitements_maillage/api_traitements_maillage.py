@@ -427,8 +427,8 @@ def load_modules():
         subprocess.run([sys.executable, "-m", "ensurepip"])
         subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
         # Nous vérifions s'il est bien installé dans l'environnement python de Blender
-        subprocess.run([sys.executable, "-m", "pip", "install", "pymeshlab", "-t", modules_path])
-        print("Installation des modules requis terminée.")
+        subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "pymeshlab", "-t", modules_path])
+        print("Installation des modules requis terminée. Merci de redémarrer Blender pour appliquer les changements...")
     # Sinon le module est déjà installé
     else:
         print("Les modules requis sont déjà installés.")
