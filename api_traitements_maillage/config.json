@@ -248,6 +248,106 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "id_name": "isotropic_explicit_remeshing",
+                        "name": "Remaillage isotrope explicite (MeshLab)",
+                        "description": "Effectue un remaillage explicite d'un maillage triangulaire, en appliquant à plusieurs reprises des opérations de retournement de bord, d'effondrement, de relaxation et d'affinage pour régulariser la taille et la ration d'aspect du maillage triangulaire. Librement inspiré par: Hugues Hoppe, Tony DeRose, Tom Duchamp, John McDonald et Werner Stuetzle.",
+                        "input": ["triangulation", "vertex_coordinates", "face_indices"],
+                        "function_name": "meshing_isotropic_explicit_remeshing",
+                        "properties": {
+                            "class_name" : "ComputeIsotropicExplicitRemeshing",
+                            "data": [
+                                {
+                                    "id_name": "iterations",
+                                    "type": "integer",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Nombre d'itérations",
+                                        "description": "Nombre d'itérations des opérations de remaillage à répéter sur le maillage.",
+                                        "default": 10,
+                                        "min": 0,
+                                        "max": 30
+                                    }         
+                                },
+                                {
+                                    "id_name": "adaptive",
+                                    "type": "boolean",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Remaillage adaptatif ?",
+                                        "description": "Active / Désactive le remaillage isotrope adaptatif",
+                                        "default": "false"
+                                    }                      
+                                },
+                                {
+                                    "id_name": "targetlen",
+                                    "type": "percentage_value",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Longueur de cible",
+                                        "description": "Définit la longueur cible pour les bords de maille remaillés.",
+                                        "default": 1,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "featuredeg",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Angle de Frottement",
+                                        "description": "Angle minimum entre les faces du maillage original pour considérer le bord partagé comme une caractéristique à préserver.",
+                                        "default": 30,
+                                        "min": 0,
+                                        "max": 180
+                                    }         
+                                },
+                                {
+                                    "id_name": "checksurfdist",
+                                    "type": "boolean",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Vérifier la déviation maximale de surface ?",
+                                        "description": "Si elle est cochée, chaque opération locale doit s'écarter du maillage d'origine par [Max. distance de surface].",
+                                        "default": "true"
+                                    }                      
+                                },
+                                {
+                                    "id_name": "maxsurfdist",
+                                    "type": "percentage_value",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Déviation maximale de surface",
+                                        "description": "Déviation maximale de surface autorisée pour chaque opération locale.",
+                                        "default": 1,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "splitflag",
+                                    "type": "boolean",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Affiner les opérations de remaillage ?",
+                                        "description": "Si elle est cochée, les opérations de remaillage incluront une étape d'affinage.",
+                                        "default": "true"
+                                    }                      
+                                },
+                                {
+                                    "id_name": "smoothflag",
+                                    "type": "boolean",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Lissage du maillage ?",
+                                        "description": "Si elle est cochée, les opérations de remaillage incluront une étape de changement de bord, visant à améliorer la valence vertex du maillage résultant.",
+                                        "default": "true"
+                                    }                      
+                                }
+                            ]
+                        }
                     }
                 ]
             }

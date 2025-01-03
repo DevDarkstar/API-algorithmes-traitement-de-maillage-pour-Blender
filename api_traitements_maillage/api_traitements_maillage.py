@@ -21,6 +21,7 @@ from api_modules.py_mesh import PyMeshApi
 import time
 import sys
 import subprocess
+import pymeshlab
 
 # Fonction d'affichage des différentes propriétés suivant l'algorithme choisi par l'utilisateur
 def draw_properties(layout, context, algorithm_name):
@@ -146,7 +147,7 @@ def set_mesh_colors(context, data):
         # Récupération si présente, l'option permettant de supprimer les matériaux déjà associés au maillage courant
         delete_materials_option = getattr(property_group, "delete_materials", None)
         # Vérification si l'utilisateur a souhaité supprimer les matériaux déjà associés au maillage
-        if delete_materials_option:
+        if delete_materials_option is not None and delete_materials_option:
             mesh.materials.clear()
             attributes = mesh.attributes
             for i in range(len(attributes) - 1, -1, -1):
@@ -294,6 +295,14 @@ def get_face_indices(object, data):
     # et stockage du résultat dans le dictionnaire des données à envoyer
     data["faces"] = faces
 
+## Fonctions permettant de transformer des types de données de Blender en types de données MeshLab
+def get_percentage_value_instance(value):
+    return pymeshlab.PercentageValue(value)
+
+
+def get_pure_value_instance(value):
+    return pymeshlab.PureValue(value) 
+
 
 # Variables globales
 class Globals:
@@ -304,7 +313,9 @@ class Globals:
     properties_factory = {"integer": create_integer_property,
                          "float": create_float_property,
                          "boolean": create_boolean_property,
-                         "enum": create_enum_property}
+                         "enum": create_enum_property,
+                         "percentage_value": create_float_property,
+                         "pure_value": create_float_property}
     # Fabrique à préparation du maillage et des données à envoyer côté C++
     inputs_factory = {"triangulation": triangulate_mesh,
                       "vertex_coordinates": get_vertex_coordinates,
@@ -320,8 +331,8 @@ class Globals:
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"
     properties_table = {}
     # Table associant à chaque algorithme une liste contenant l'identifiant du langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire et le nom de la function utilisée pour réaliser l'algorithme (cas de MeshLab). 
-    # Exemples : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}, [True, True, False, False], ""]
-    #            "colorize_curvature_apss' : [1, {"filterscale" : 2, "projectionaccuracy" : 0.01, "maxprojectioniters" : 15, "sphericalparameter" : 1, "curvaturetype" : "DEFAULT", "delete_materials" : False}, [True, True, True, True, True, False], "compute_curvature_and_color_apss_per_vertex"]
+    # Exemples : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}, ["integer", "float", "enum", "boolean"], [True, True, False, False], ""]
+    #            "colorize_curvature_apss' : [1, {"filterscale" : 2, "projectionaccuracy" : 0.01, "maxprojectioniters" : 15, "sphericalparameter" : 1, "curvaturetype" : "DEFAULT", "delete_materials" : False}, ["float", "float", "integer", "float", "enum", "boolean"], [True, True, True, True, True, False], "compute_curvature_and_color_apss_per_vertex"]
     algorithm_properties = {}
     # Table associant à chaque algorithme la liste des opérations à effectuer avant d'envoyer les données côté C++ (traitement prélable du maillage, informations du maillage à récupérer, ...)
     # Exemple : "segmentation_cgal' : ["triangulation", "vertex_coordinates", "face_indices"]
@@ -330,6 +341,9 @@ class Globals:
     algorithm_description = {}
     # Dernière configuration chargée par l'utilisateur
     last_loaded_configuration = {}
+    # Table permettant de convertir les valeurs des propriétés Blender vers des types MeshLab
+    meshlab_types = {"percentage_value": get_percentage_value_instance,
+                     "pure_value": get_pure_value_instance}
 
 
 def create_description(content):
@@ -399,7 +413,7 @@ def compute_algorithm(context):
         # Récupération des données de l'algorithme courant
         algorithm_data = Globals.algorithm_properties[algorithm_name]
         # Ajout du nom de la fonction utilisée pour réaliser l'algorithme (pour MeshLab)
-        data["function"] = algorithm_data[3]
+        data["function"] = algorithm_data[4]
         # Récupération du groupe de propriété associé à l'algorithme choisi (si présent)
         # et stockage des valeurs de l'ensemble des proprétés dans le dictionnaire data
         property_group = getattr(scene, algorithm_name, None)
@@ -407,8 +421,12 @@ def compute_algorithm(context):
             data["params"] = {}
             data["options"] = {}
             for i, property_name in enumerate(algorithm_data[1].keys()):
-                if algorithm_data[2][i] is True:
-                    data["params"][property_name] = getattr(property_group, property_name)
+                if algorithm_data[3][i] is True:
+                    # Vérification si la valeur n'est pas de type Meshlab
+                    if algorithm_data[2][i] not in ["percentage_value", "pure_value"]:
+                        data["params"][property_name] = getattr(property_group, property_name)
+                    else:
+                        data["params"][property_name] = Globals.meshlab_types[algorithm_data[2][i]](getattr(property_group, property_name))
                 else:
                     data["options"][property_name] = getattr(property_group, property_name)
                 # data[property_name] = getattr(property_group, property_name)
@@ -503,6 +521,7 @@ def load_algorithms():
                         Globals.algorithm_input_pipeline[algorithm_name] = algorithm.get("input", [])
                         # Initialisation de la liste dans la table "algorithm_properties" avec le langage de programmation utilisé et qui contiendra le nom des propriétés de l'algorithme courant et leurs valeurs par défaut associées
                         Globals.algorithm_properties[algorithm_name] = [programming_language]
+                        algorithm_props = Globals.algorithm_properties[algorithm_name]
                         properties_dict = {}
                         # Récupération du dictionnaire des propriétés de l'algorithme courant
                         properties = algorithm.get("properties", None)
@@ -511,6 +530,8 @@ def load_algorithms():
                             properties_data = properties["data"]
                             # Initialisation d'un dictionnaire permettant de stocker les propriétés de l'algorithme courant
                             properties_dict = {}
+                            # Initialisation d'une liste stockant les types des propriétés de l'algorithme courant
+                            properties_types = []
                             # Initialisation d'une liste permettant de stocker si les propriétés de l'algorithme sont utilisées ou non dans l'algorithme
                             is_parameter = []
                             # Création d'une classe de propriétés vide héritant de PropertyGroup qui englobera l'ensemble des propriétés de l'algorithme courant
@@ -526,6 +547,8 @@ def load_algorithms():
                                 # Association du nom de la propriété courante à sa valeur par défaut dans la table des propriétés
                                 # Globals.algorithm_properties[algorithm_name][property["id_name"]] = default_value
                                 properties_dict[property["id_name"]] = default_value
+                                # Ajout du type de la propriété dans le conteneur correspondant
+                                properties_types.append(property["type"])
                                 # Récupération du booléen permettant de savoir si la propriété courante est utilisée ou non dans l'algorithme
                                 is_parameter.append(False if property.get("is_parameter", "") == "false" else True)                 
                                 # Globals.properties_factory[property["type"]](property_class, property["data"], property["id_name"])
@@ -533,17 +556,20 @@ def load_algorithms():
                             # Stockage de la classe nouvellement créée dans une table permettant de la désinscrire du registre de Blender lors de l'appel de la fonction "unregister"
                             Globals.properties_table[algorithm_name] = property_class
                             # Ajout du dictionnaire de propriétés dans la table algorithm_properties
-                            Globals.algorithm_properties[algorithm_name].append(properties_dict)
+                            algorithm_props.append(properties_dict)
+                            # Ajout de la liste des types des propriétés dans la table algorithm_properties
+                            algorithm_props.append(properties_types)
                             # Ainsi que la liste indiquant si les propriétés précédentes sont utilisées dans l'algorithme
-                            Globals.algorithm_properties[algorithm_name].append(is_parameter)
+                            algorithm_props.append(is_parameter)
                         
                             # et référencement de la classe par un attribut
                             setattr(bpy.types.Scene, algorithm_name, bpy.props.PointerProperty(type=property_class))
                         else:
-                            Globals.algorithm_properties[algorithm_name].append(properties_dict)
-                            Globals.algorithm_properties[algorithm_name].append(is_parameter)
+                            algorithm_props.append(properties_dict)
+                            algorithm_props.append(properties_types)
+                            algorithm_props.append(is_parameter)
                         # Ajout de la fonction utilisée pour l'algorithme (cas de MeshLab)
-                        Globals.algorithm_properties[algorithm_name].append(algorithm.get("function_name", ""))                   
+                        algorithm_props.append(algorithm.get("function_name", ""))                   
         else:
             pass
 

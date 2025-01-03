@@ -93,4 +93,4 @@ cd ../$EXTENSION_DIR
 # Enfin, compression au format .zip du dossier contenant les fichiers de l'extension Blender
 zip -r api_traitement_maillage.zip ./*
 
-echo "Création de l'extension Blender réussie."
+echo "Création de l'extension Blender réussie dans le dossier '$EXTENSION_DIR'."
