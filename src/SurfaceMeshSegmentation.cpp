@@ -15,7 +15,7 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
     const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
     this->m_clusters = data["params"]["clusters"].cast<int>();
     this->m_smoothness = data["params"]["smoothness"].cast<double>();
-    this->m_output_option = data["params"]["output_option"].cast<std::string>();
+    this->m_output_option = data["options"]["output_option"].cast<std::string>();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;
@@ -59,9 +59,9 @@ void SurfaceMeshSegmentation::compute_algorithm(){
         std::cout << "Time elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms" << std::endl;
  
         if(this->m_output_option == "SEGMENTS_COLOR"){
-            this->m_output_data["colors_number"] = number_of_segments; 
+            //this->m_output_data["colors_number"] = number_of_segments; 
             this->set_segments_ids_to_colors(number_of_segments);
-            this->m_output_data["output_result"] = "faces_coloration";
+            this->m_output_data["output_result"] = "face_coloration";
         }
         else{
             // Création du message de résultat

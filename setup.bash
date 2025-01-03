@@ -54,11 +54,13 @@ fi
 BUILD_DIR="build"
 # Dossier contenant l'extension Blender
 EXTENSION_DIR="api_traitements_maillage"
+# Dossier du package Python contenant l'ensemble des modules de l'extension
+MODULE_DIR="api_modules"
 
 echo "Compilation du programme..."
 
 # Création du dossier "build" si non présent afin d'y stocker tous les fichiers de compilation
-if [ ! -d "$BUILD_DIR" ]; then
+if [[ ! -d "$BUILD_DIR" ]]; then
     mkdir "$BUILD_DIR"
 fi
 
@@ -77,12 +79,12 @@ fi
 # Compilation du programme
 make
 
-# Déplacement du fichier compilé dans le dossier contenant le reste de l'extension Blender
-mv *.so ../$EXTENSION_DIR
+# Déplacement du fichier compilé dans le dossier "api_modules', servant de package pour les modules Python de l'extension
+mv *.so ../$EXTENSION_DIR/$MODULE_DIR
 
 # Vérification si le fichier a bien été déplacé dans le dossier de l'extension
 if [[ $? -ne 0 ]]; then
-    echo "Erreur lors du déplacement du fichier .so dans le dossier $EXTENSION_DIR. Vérifiez que ce dernier existe bien..."
+    echo "Erreur lors du déplacement du fichier .so dans le dossier $MODULE_DIR. Vérifiez que ce dernier existe bien..."
     exit 1
 fi
 

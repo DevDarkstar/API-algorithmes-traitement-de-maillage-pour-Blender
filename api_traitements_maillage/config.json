@@ -16,6 +16,7 @@
                                 {
                                     "id_name": "clusters",
                                     "type": "integer",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Clusters",
                                         "description": "Nombre de clusters de l'algorithme de segmentation",
@@ -27,6 +28,7 @@
                                 {
                                     "id_name": "smoothness",
                                     "type": "float",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Finesse",
                                         "description": "Finesse de la segmentation (plus la valeur est élevée, plus le nombre de segments résultants le sera également)",
@@ -38,6 +40,7 @@
                                 {
                                     "id_name": "output_option",
                                     "type": "enum",
+                                    "is_parameter": "false",
                                     "data": {
                                         "name": "Sortie",
                                         "items": [
@@ -57,6 +60,7 @@
                                 {
                                     "id_name": "delete_materials",
                                     "type": "boolean",
+                                    "is_parameter": "false",
                                     "data": {
                                         "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
@@ -77,6 +81,7 @@
                                 {
                                     "id_name": "decimation_factor",
                                     "type": "float",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Facteur de décimation",
                                         "description": "Facteur de décimation du maillage",
@@ -109,6 +114,7 @@
                                 {
                                     "id_name": "output_option",
                                     "type": "enum",
+                                    "is_parameter": "false",
                                     "data": {
                                         "name": "Sortie",
                                         "items": [
@@ -142,6 +148,7 @@
                         "id_name": "colorize_curvature_apss",
                         "name": "Colorisation de courbure (MeshLab)",
                         "description": "Colorisation des sommets d'un maillage ou d'un ensemble de points en utilisant la courbure de la surface sous-jacente. Il s'agit de la variante des surfaces algébriques d'ensembles de points (APSS) qui est basée sur l'ajustement local de sphères algébriques.",
+                        "input": ["triangulation", "vertex_coordinates", "face_indices"],
                         "function_name": "compute_curvature_and_color_apss_per_vertex",
                         "properties": {
                             "class_name" : "ComputeCurvatureAndColorApssPerVertex",
@@ -149,6 +156,7 @@
                                 {
                                     "id_name": "filterscale",
                                     "type": "float",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Echelle du filtre",
                                         "description": "Echelle du filtre passe-bas spatial.",
@@ -160,6 +168,7 @@
                                 {
                                     "id_name": "projectionaccuracy",
                                     "type": "float",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Précision de projection",
                                         "description": "Valeur seuil utilisée pour arrêter les projections.",
@@ -171,6 +180,7 @@
                                 {
                                     "id_name": "maxprojectioniters",
                                     "type": "integer",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Nombre maximal d'itérations",
                                         "description": "Nombre maximal d'itérations pour la projection",
@@ -182,6 +192,7 @@
                                 {
                                     "id_name": "sphericalparameter",
                                     "type": "float",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Paramètre sphérique",
                                         "description": "Contrôle la courbure des sphères ajustées : 0 équivaut à un ajustement plan pur, 1 à un ajustement sphérique pur, les valeurs entre 0 et 1 donnent des résultats intermédiaires, tandis que d'autres valeurs réelles peuvent donner des résultats intéressants, mais attention aux paramètres extrêmes !.",
@@ -193,6 +204,7 @@
                                 {
                                     "id_name": "curvaturetype",
                                     "type": "enum",
+                                    "is_parameter": "true",
                                     "data": {
                                         "name": "Type de courbure",
                                         "items": [
@@ -222,6 +234,16 @@
                                                 "description": "Courbure par approximation de la moyenne"
                                             }
                                         ]
+                                    }                      
+                                },
+                                {
+                                    "id_name": "delete_materials",
+                                    "type": "boolean",
+                                    "is_parameter": "false",
+                                    "data": {
+                                        "name": "Supprimer matériaux ?",
+                                        "description": "Suppression des matériaux déjà associés au maillage",
+                                        "default": "false"
                                     }                      
                                 }
                             ]

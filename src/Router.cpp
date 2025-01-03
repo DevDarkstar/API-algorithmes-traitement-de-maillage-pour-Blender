@@ -3,7 +3,6 @@
 #include "SurfaceMeshSegmentation.hpp"
 #include "SurfaceAreaComputation.hpp"
 #include "TestCpp.hpp"
-#include "MeshLab.hpp"
 //#include <iostream>
 
 namespace py = pybind11;
@@ -15,8 +14,6 @@ std::vector<std::map<std::string, std::function<Algorithm*(const pybind11::dict&
                                                                     {"simplification_cgal", [](const py::dict& data){ return new SurfaceMeshSimplification(data); }},
                                                                     {"area_computation_cgal", [](const py::dict& data){ return new SurfaceAreaComputation(data); }},
                                                                     {"test_cpp", [](const py::dict& data){ return new TestCpp(data); }}
-                                                                },{
-                                                                    {"colorize_curvature_apss", [](const py::dict& data){ return new MeshLab(data); }}
                                                                 }
                                                             };
 
