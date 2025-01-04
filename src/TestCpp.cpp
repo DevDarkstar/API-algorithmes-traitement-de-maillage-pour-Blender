@@ -12,7 +12,7 @@ void TestCpp::compute_algorithm(){
         this->m_output_data["output_result"] = "message";
         this->m_output_data["result_infos"] = "Ceci est un message provenant d'un algorithme C++ pur.";
     }else {
-        this->m_output_data["output_result"] = "new_mesh";
+        this->m_output_data["output_result"] = "add_mesh";
         // Coordonnées des sommets de la pyramide
         //v1 = {0.0,0.0,0.0}
         //v2 = {1.0,0.0,0.0}

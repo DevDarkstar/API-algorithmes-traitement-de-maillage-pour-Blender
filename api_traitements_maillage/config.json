@@ -348,6 +348,173 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "id_name": "fractal_terrain",
+                        "name": "Créer un terrain fractal (MeshLab)",
+                        "description": "Génère une perturbation de terrain fractale avec cinq algorithmes différents.",
+                        "input": ["triangulation", "vertex_coordinates", "face_indices"],
+                        "function_name": "create_fractal_terrain",
+                        "properties": {
+                            "class_name" : "CreateFractalTerrain",
+                            "data": [
+                                {
+                                    "id_name": "steps",
+                                    "type": "integer",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Etapes de subdivision",
+                                        "description": "Définit le niveau de détail du terrain généré. Les valeurs autorisées sont comprises entre [2,9]. Utilisez des valeurs comprises entre 6 et 9 pour obtenir des résultats raisonnables.",
+                                        "default": 8,
+                                        "min": 2,
+                                        "max": 9
+                                    }         
+                                },
+                                {
+                                    "id_name": "maxheight",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Hauteur maximale",
+                                        "description": "Définit la hauteur de perturbation maximale en tant que fraction du côté du terrain.",
+                                        "default": 0.2,
+                                        "min": 0,
+                                        "max": 1
+                                    }         
+                                },
+                                {
+                                    "id_name": "scale",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Facteur d'échelle",
+                                        "description": "Ajuste la perturbation fractale en fonction de l'échelle. Les valeurs supérieures à 1 signifient un zoom arrière ; les valeurs inférieures à 1 signifient un zoom avant.",
+                                        "default": 1,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "seed",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Seed",
+                                        "description": "En faisant varier cette seed, la morphologie du terrain va changer. Ne changez pas la seed si vous souhaitez affiner la morphologie actuelle du terrain en changeant les autres paramètres.",
+                                        "default": 2,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "algorithm",
+                                    "type": "enum",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Algorithme",
+                                        "items": [
+                                            {
+                                                "id": "fBM (fractal Brownian Motion)",
+                                                "name": "fBM (fractal Brownian Motion)",
+                                                "description": "" 
+                                            },
+                                            {
+                                                "id": "Standard multifractal",
+                                                "name": "Standard multifractal",
+                                                "description": ""
+                                            },
+                                            {
+                                                "id": "Heterogeneous multifractal",
+                                                "name": "Heterogeneous multifractal",
+                                                "description": ""
+                                            },
+                                            {
+                                                "id": "Hybrid multifractal terrain",
+                                                "name": "Hybrid multifractal terrain",
+                                                "description": ""
+                                            },
+                                            {
+                                                "id": "Ridged multifractal terrain",
+                                                "name": "Ridged multifractal terrain",
+                                                "description": ""
+                                            }
+                                        ]
+                                    }                      
+                                },
+                                {
+                                    "id_name": "octaves",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Octaves",
+                                        "description": "Nombre de fréquences de bruit Perlin qui seront utilisées pour générer le terrain. Les valeurs raisonnables se situent dans la plage [2,9].",
+                                        "default": 8,
+                                        "min": 1,
+                                        "max": 20
+                                    }         
+                                },
+                                {
+                                    "id_name": "lacunarity",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Lacunarité",
+                                        "description": "Ecart entre les fréquences de bruit. Ce paramètre est utilisé conjointement avec l'incrément fractal pour calculer les poids spectraux qui contribuent au bruit dans chaque octave.",
+                                        "default": 4,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "lacunarity",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Lacunarité",
+                                        "description": "Ecart entre les fréquences de bruit. Ce paramètre est utilisé conjointement avec l'incrément fractal pour calculer les poids spectraux qui contribuent au bruit dans chaque octave.",
+                                        "default": 4,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "fractalincrement",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Incrément fractal",
+                                        "description": "Ce paramètre définit la rugosité du terrain généré. La plage de valeurs raisonnables varie en fonction de l'algorithme utilisé, mais vous pouvez la choisir dans la plage [0,2, 1,5].",
+                                        "default": 0.5,
+                                        "min": 0,
+                                        "max": 3
+                                    }         
+                                },
+                                {
+                                    "id_name": "offset",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Offset",
+                                        "description": "Ce paramètre contrôle la multifractalité du terrain généré. Si le décalage est faible, le terrain sera lisse.",
+                                        "default": 0.9,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "gain",
+                                    "type": "float",
+                                    "is_parameter": "true",
+                                    "data": {
+                                        "name": "Gain",
+                                        "description": "Ignoré dans tous les algorithmes sauf celui avec crête. Ce paramètre définit la dureté du terrain.",
+                                        "default": 2.5,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                }
+                            ]
+                        }
                     }
                 ]
             }

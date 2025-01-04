@@ -81,10 +81,16 @@ def set_new_mesh(context, data):
     if resulting_mesh_vertices is not None and resulting_mesh_faces is not None:
         # Déselection de tous les objets de la scène
         bpy.ops.object.select_all(action="DESELECT")
-        # et sélection de l'objet à modifier
-        object.select_set(True)    
-        # Suppression de l'ancien maillage
-        bpy.ops.object.delete()
+        # Vérification si l'algorithme nécessite le remplacement du maillage courant par le nouveau maillage
+        # Récupération du choix de sortie de l'algorithme courant
+        output_result = data.get("output_result")
+        if output_result == "replace_mesh":
+            # Sélection de l'objet à modifier
+            object.select_set(True)    
+            # Suppression de l'ancien maillage
+            bpy.ops.object.delete()
+        else:
+            pass
 
         # Création d'un nouveau maillage
         resulting_mesh = bpy.data.meshes.new(name=mesh_name)
@@ -124,6 +130,8 @@ def set_new_mesh(context, data):
         # et sélection de l'objet dans la scène 3D comme nouvel objet courant
         bpy.context.view_layer.objects.active = obj
         obj.select_set(True)
+        # Et nous centrons la scène sur le nouvel objet créé (équivaut à Numpad .)
+        bpy.ops.view3d.view_selected(use_all_regions=False)
     else:
         raise RuntimeError("Une erreur s'est produite lors de la création du nouveau maillage.")
 
@@ -326,7 +334,8 @@ class Globals:
     outputs_table = {"message": display_results, # Affiche un message dans l'API donnant des informations sur les résultats du traitement effectué
                      "face_coloration": set_mesh_colors, # Définit des nouvelles couleurs pour les faces du maillage
                      "vertex_coloration": set_mesh_colors, # Définit des nouvelles couleurs pour les sommets du maillage
-                     "new_mesh": set_new_mesh} # Crée un nouveau maillage
+                     "replace_mesh": set_new_mesh, # Remplace le maillage sélectionné par un nouveau maillage
+                     "add_mesh": set_new_mesh} # Ajoute le maillage créé dans la scène sans supprimer le maillage sélectionné
     # Table permettant d'associer à un attribut (présent sous la forme d'un string) une classe de propriétés (héritant de PropertyGroup) que l'attribut
     # référencera à l'aide d'un PointerProperty. Exemple : 'segmentation_cgal' : CgalSegmentationProperties
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"

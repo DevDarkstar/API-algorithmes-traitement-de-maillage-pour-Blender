@@ -56,7 +56,7 @@ void SurfaceMeshSimplification::compute_algorithm()
 
     this->update_vertex_coordinates(); 
     this->update_face_indices(vertex_reindexing);
-    this->m_output_data["output_result"] = "new_mesh";
+    this->m_output_data["output_result"] = "replace_mesh";
 }
 
 void SurfaceMeshSimplification::update_vertex_coordinates()

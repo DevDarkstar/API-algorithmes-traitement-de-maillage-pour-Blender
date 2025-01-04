@@ -54,8 +54,8 @@ class PyMeshApi:
         if function_name in ["compute_curvature_and_color_apss_per_vertex"]:
             self.result["output_result"] = "vertex_coloration"
             self.result["colors"] = resulting_mesh.vertex_color_matrix().flatten()
-        elif function_name in ["meshing_isotropic_explicit_remeshing"]:
-            self.result["output_result"] = "new_mesh"
+        elif function_name in ["meshing_isotropic_explicit_remeshing", "create_fractal_terrain"]:
+            self.result["output_result"] = "replace_mesh"
             self.result["vertices"] = resulting_mesh.vertex_matrix().flatten()
             self.result["faces"] = resulting_mesh.face_matrix().flatten()
         else:
