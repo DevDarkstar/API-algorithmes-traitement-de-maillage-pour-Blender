@@ -14,7 +14,9 @@ SurfaceMeshSimplification::SurfaceMeshSimplification(const py::dict& data) : m_s
     //On caste toutes les données provenant de notre structure de données python vers des types C++
     const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
     const std::vector<double> vertices = data["vertices"].cast<std::vector<double>>();
-    this->m_stop_ratio = data["params"]["decimation_factor"].cast<double>();
+    py::list params = data["params"].cast<py::list>();
+    py::dict algorithm_parameters = params[0].cast<py::dict>();
+    this->m_stop_ratio = algorithm_parameters["decimation_factor"].cast<double>();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;
@@ -49,6 +51,7 @@ void SurfaceMeshSimplification::compute_algorithm()
         std::cout << "Time elapsed: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms" << std::endl;
     }catch(const std::exception& e){
         std::cerr << "Une erreur s'est produite lors de l'éxécution de l'algorithme de décimation de CGAL : " << e.what() << std::endl;
+        throw;
     }
 
     // Mise à jour des indices des sommets restants dans le maillage de sorte à ce que le premier sommet du maillage restant ait bien l"indice 0, le second l"indice 1, ...
@@ -56,7 +59,7 @@ void SurfaceMeshSimplification::compute_algorithm()
 
     this->update_vertex_coordinates(); 
     this->update_face_indices(vertex_reindexing);
-    this->m_output_data["output_result"] = "replace_mesh";
+    this->m_output_data["output_result"] = std::array<std::string,1>{"replace_mesh"};
 }
 
 void SurfaceMeshSimplification::update_vertex_coordinates()

@@ -52,5 +52,5 @@ void SurfaceAreaComputation::compute_algorithm(){
     // Création du message de résultat
     boost::format message = boost::format("Aire du maillage : %1% m².") % area; 
     this->m_output_data["result_infos"] = message.str();
-    this->m_output_data["output_result"] = "message";
+    this->m_output_data["output_result"] = std::array<std::string,1>{"message"};
 }

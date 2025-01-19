@@ -58,11 +58,11 @@ def draw_properties(layout, context, algorithm_name):
 
     
 ## Fonctions d'applications des traitements sur le maillage courant à partir des résultats retournés par l'algorithme choisi par l'utilisateur
-def display_results(context, data):
+def display_results(context, data, output_result):
     # Stockage du message de résultats dans la propriété permettant d'afficher des messages dans l'API
     context.scene.api_properties.result_infos = data.get("result_infos", "")
 
-def set_new_mesh(context, data):
+def set_new_mesh(context, data, output_result):
     # Récupération de l'objet courant
     object = context.active_object
 
@@ -82,8 +82,6 @@ def set_new_mesh(context, data):
         # Déselection de tous les objets de la scène
         bpy.ops.object.select_all(action="DESELECT")
         # Vérification si l'algorithme nécessite le remplacement du maillage courant par le nouveau maillage
-        # Récupération du choix de sortie de l'algorithme courant
-        output_result = data.get("output_result")
         if output_result == "replace_mesh":
             # Sélection de l'objet à modifier
             object.select_set(True)    
@@ -136,7 +134,7 @@ def set_new_mesh(context, data):
         raise RuntimeError("Une erreur s'est produite lors de la création du nouveau maillage.")
 
 
-def set_mesh_colors(context, data):
+def set_mesh_colors(context, data, output_result):
     # Récupération de l'objet courant
     object = context.active_object
     # et de son maillage associé
@@ -161,24 +159,23 @@ def set_mesh_colors(context, data):
             attributes = mesh.attributes
             for i in range(len(attributes) - 1, -1, -1):
                 name = attributes[i].name
-                if name.split('.')[0] == "Face_Col" or name.split('.') == "Vertex_Col":
+                if name.split('.')[0] == "Face_Col" or name.split('.')[0] == "Vertex_Col":
                     attributes.remove(attributes[i])
         else:
             pass
 
-        # Récupération du choix de sortie de l'algorithme courant
-        output_result = data.get("output_result")
-
         # Création de l'attribut de couleurs (vertex color layout) permettant de gérer les couleurs des faces ou des sommets du maillage
         if output_result == "face_coloration":
-            vertex_color_layout = mesh.color_attributes.new(name="Face_Col", type="BYTE_COLOR", domain="FACE")
+            color_layout = mesh.attributes.new(name="Face_Col", type="FLOAT_COLOR", domain="FACE")
         elif output_result == "vertex_coloration":
-            vertex_color_layout = mesh.color_attributes.new(name="Vertex_Col", type="BYTE_COLOR", domain="POINT")
+            color_layout = mesh.color_attributes.new(name="Vertex_Col", type="FLOAT_COLOR", domain="POINT")
+            # définition de l'attribut comme attribut de couleurs actif
+            setattr(mesh.color_attributes, "active_color", color_layout)
         else:
             raise RuntimeError("Le choix de sortie est inconnu.")
 
         # Stockage des informations de couleurs dans l'attribut
-        vertex_color_layout.data.foreach_set("color", colors)
+        color_layout.data.foreach_set("color", colors)
 
         # Récupération du nombre de matériaux déjà associés au maillage (servira d'offset pour affecter le bon matériau à la bonne face)
         nb_materials = len(mesh.materials)
@@ -198,8 +195,8 @@ def set_mesh_colors(context, data):
         # Création d'un noeud "Attribut"
         attribute = nodes.new(type="ShaderNodeAttribute")
         # définition du nom de l'attribut sur "Face_Col" (couleurs des faces du maillage) ou "Vertex_Col" (couleurs des sommets du maillage)
-        attribute.attribute_name = vertex_color_layout.name
-        attribute.location = (160, 330)
+        attribute.attribute_name = color_layout.name
+        attribute.location = (60, 330)
 
         # Récupération du noeud "Principled BSDF" (présent par défaut)
         bsdf = nodes["Principled BSDF"]
@@ -212,6 +209,7 @@ def set_mesh_colors(context, data):
 
         # Affectation de l'indice du matériau nouvellement créé à toutes les faces du maillage
         mesh.polygons.foreach_set("material_index", [nb_materials] * len(mesh.polygons))
+        # Définition de l'attribut créé comme attribut actif du maillage
         mesh.update()
 
         # Passage du mode de rendu sur "MATERIAL" afin de pouvoir visualiser le résultat
@@ -304,6 +302,40 @@ def get_face_indices(object, data):
     # et stockage du résultat dans le dictionnaire des données à envoyer
     data["faces"] = faces
 
+
+def get_color_data(object, data):
+    # Récupération du maillage associé à l'objet courant
+    mesh = object.data
+    # Récupération de l'attribut de couleurs associé aux sommets actif (si présent)
+    active_vertex_colors = mesh.color_attributes.active_color
+    # S'il existe un attribut de couleurs associé aux sommets du maillage
+    if active_vertex_colors:
+        # Création d'un tableau numpy permettant de stocker les couleurs du maillage
+        vertex_color_array = np.zeros(len(mesh.vertices) * 4, dtype=np.float64)
+        # Stockage des couleurs de l'attribut dans le tableau numpy
+        active_vertex_colors.data.foreach_get("color", vertex_color_array)
+        data["vertex_color"] = vertex_color_array
+    # S'il n'y a pas d'attributs associant des couleurs aux sommets du maillage, nous essayons de voir
+    # s'il existe un attribut associant des couleurs aux faces du maillage
+    else:
+        # Récupération des attributs du maillage
+        attributes = mesh.attributes
+        # Parcours des attributs du dernier au premier de sorte à récupérer le dernier attribut créé associant
+        # des couleurs aux faces (si présent)
+        for i in range(len(attributes) - 1, -1, -1):
+            # Si l'attribut courant contient des couleurs (données de type FLOAT_COLOR) et les associe aux faces
+            # alors il s'agit de l'attribut recherché
+            current_attribute = attributes[i]
+            if current_attribute.data_type == "FLOAT_COLOR" and current_attribute.domain == "FACE":
+                # Création d'un tableau numpy permettant de stocker les informations des couleurs
+                face_color_array = np.zeros(len(mesh.polygons) * 4, dtype=np.float64)
+                current_attribute.data.foreach_get("color", face_color_array)
+                data["face_color"] = face_color_array
+                break
+            else:
+                pass
+
+
 ## Fonctions permettant de transformer des types de données de Blender en types de données MeshLab
 def get_percentage_value_instance(value):
     return pymeshlab.PercentageValue(value)
@@ -315,9 +347,6 @@ def get_pure_value_instance(value):
 
 # Variables globales
 class Globals:
-    # algorithm_properties = {"DEFAULT" : {"drawing_properties" : draw_default, "input" : None, "output": None},
-                          # "SEGMENTATION" : {"drawing_properties" : draw_segmentation_properties, "input" : send_mesh, "output" : set_new_colors},
-                          # "SIMPLIFICATION" : {"drawing_properties" : draw_simplification_properties, "input" : send_mesh, "output" : create_new_mesh}}
     # Fabrique à création de propriétés Blender
     properties_factory = {"integer": create_integer_property,
                          "float": create_float_property,
@@ -328,7 +357,8 @@ class Globals:
     # Fabrique à préparation du maillage et des données à envoyer côté C++
     inputs_factory = {"triangulation": triangulate_mesh,
                       "vertex_coordinates": get_vertex_coordinates,
-                      "face_indices": get_face_indices}
+                      "face_indices": get_face_indices,
+                      "color_data": get_color_data}
     # Table permettant de gérer les résultats retournés par l'API C++ et d'effectuer les traitements correspondants en fonction
     # de la nature de la demande initiale de retour des données
     outputs_table = {"message": display_results, # Affiche un message dans l'API donnant des informations sur les résultats du traitement effectué
@@ -341,9 +371,14 @@ class Globals:
     # Est utilisée retirer les classes de propriétés du registre de Blender et de supprimer les références à ces dernières par un objet de Blender lors de l'appel de la fonction "unregister"
     properties_table = {}
     # Table associant à chaque algorithme une liste contenant l'identifiant du langage de programmation de l'algorithme ainsi que la liste éventuelle de ses propriétes sous forme de dictionnaire et le nom de la function utilisée pour réaliser l'algorithme (cas de MeshLab). 
-    # Exemples : "segmentation_cgal' : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}, ["integer", "float", "enum", "boolean"], [True, True, False, False], ""]
-    #            "colorize_curvature_apss' : [1, {"filterscale" : 2, "projectionaccuracy" : 0.01, "maxprojectioniters" : 15, "sphericalparameter" : 1, "curvaturetype" : "DEFAULT", "delete_materials" : False}, ["float", "float", "integer", "float", "enum", "boolean"], [True, True, True, True, True, False], "compute_curvature_and_color_apss_per_vertex"]
+    # Exemples : "segmentation_cgal" : [0, {"clusters" : 4, "smoothness" : 0.5, "output_options" : "DEFAULT", "delete_materials" : False}, ["integer", "float", "enum", "boolean"], []]
+    #            "colorize_curvature_apss" : [1, {"filterscale" : 2, "projectionaccuracy" : 0.01, "maxprojectioniters" : 15, "sphericalparameter" : 1, "curvaturetype" : "DEFAULT", "delete_materials" : False}, ["float", "float", "integer", "float", "enum", "boolean"], ["compute_curvature_and_color_apss_per_vertex"]]
     algorithm_properties = {}
+    # Table associant au nouveau d'un algorithme une liste contenant le nombre d'étapes de l'algorithme (comprendre le nombre de sous-algorithmes utilisés) ainsi que la liste des n indices des sous-algorithmes dans lesquels les m paramètres sont présents
+    # -1 indique que le paramètre n'est pas présent dans un sous-algorithme sinon une valeur d'indice j à la position i dans la liste indique que le i-ème paramètre est présent dans le j-ème sous-algorithme
+    # Exemples : "segmentation_cgal" : [1, [1,1,-1,-1]]
+    #            "colorize_curvature_apss" : [1, [1,1,1,1,1,-1]]
+    algorithm_steps = {}
     # Table associant à chaque algorithme la liste des opérations à effectuer avant d'envoyer les données côté C++ (traitement prélable du maillage, informations du maillage à récupérer, ...)
     # Exemple : "segmentation_cgal' : ["triangulation", "vertex_coordinates", "face_indices"]
     algorithm_input_pipeline = {}
@@ -420,26 +455,33 @@ def compute_algorithm(context):
         for operation in Globals.algorithm_input_pipeline[algorithm_name]:
             Globals.inputs_factory[operation](object, data)
 
-        # Récupération des données de l'algorithme courant
+        # Récupération des données des propriétés de l'algorithme courant
         algorithm_data = Globals.algorithm_properties[algorithm_name]
+        # Récupération des étapes de l'algorithme courant
+        algorithm_steps = Globals.algorithm_steps[algorithm_name]
         # Ajout du nom de la fonction utilisée pour réaliser l'algorithme (pour MeshLab)
-        data["function"] = algorithm_data[4]
+        data["function"] = algorithm_data[3]
+        params = [{} for _ in range(algorithm_steps[0])]
+        options = {}
         # Récupération du groupe de propriété associé à l'algorithme choisi (si présent)
         # et stockage des valeurs de l'ensemble des proprétés dans le dictionnaire data
         property_group = getattr(scene, algorithm_name, None)
-        if property_group is not None:
-            data["params"] = {}
-            data["options"] = {}
+        if property_group is not None:           
             for i, property_name in enumerate(algorithm_data[1].keys()):
-                if algorithm_data[3][i] is True:
+                # Si le paramètre n'est pas utilisé dans l'algorithme
+                if algorithm_steps[1][i] == -1:
+                    options[property_name] = getattr(property_group, property_name)
+                else:
                     # Vérification si la valeur n'est pas de type Meshlab
                     if algorithm_data[2][i] not in ["percentage_value", "pure_value"]:
-                        data["params"][property_name] = getattr(property_group, property_name)
+                        params[algorithm_steps[1][i] - 1][property_name] = getattr(property_group, property_name)
                     else:
-                        data["params"][property_name] = Globals.meshlab_types[algorithm_data[2][i]](getattr(property_group, property_name))
-                else:
-                    data["options"][property_name] = getattr(property_group, property_name)
-                # data[property_name] = getattr(property_group, property_name)
+                        params[algorithm_steps[1][i] - 1][property_name] = Globals.meshlab_types[algorithm_data[2][i]](getattr(property_group, property_name))           
+        else:
+            pass
+        data["params"] = params
+        data["options"] = options
+                    
         
         start = time.time()
 
@@ -462,7 +504,9 @@ def compute_algorithm(context):
         end = time.time()
         print(f"Temps d'exécution de l'algorithme : {end-start}s")
         # gestion des résultats en fonction de la requête initiale de l'utilisateur
-        Globals.outputs_table[results.get("output_result")](context, results)
+        output_results = results.get("output_result", [])
+        for output_result in output_results:
+            Globals.outputs_table[output_result](context, results, output_result)
 
 
 def check_required_modules():
@@ -541,19 +585,20 @@ def load_algorithms():
                         Globals.algorithm_input_pipeline[algorithm_name] = algorithm.get("input", [])
                         # Initialisation de la liste dans la table "algorithm_properties" avec le langage de programmation utilisé et qui contiendra le nom des propriétés de l'algorithme courant et leurs valeurs par défaut associées
                         Globals.algorithm_properties[algorithm_name] = [programming_language]
+                        # Initialisation de la liste de la table "algorithm_steps" avec le nombre de sous-algorithmes permettant de mener à bien l'exécution de l'algorithme principal
+                        Globals.algorithm_steps[algorithm_name] = [algorithm.get("steps")]
                         algorithm_props = Globals.algorithm_properties[algorithm_name]
+                        # Initialisation d'un dictionnaire permettant de stocker les propriétés de l'algorithme courant
                         properties_dict = {}
+                        # Initialisation d'une liste stockant les types des propriétés de l'algorithme courant
+                        properties_types = []
+                        # Initialisation d'une liste permettant de stocker si les propriétés de l'algorithme sont utilisées ou non dans l'algorithme et, si oui, dans quel sous-algorithme ce paramètre est utilisé
+                        sub_algorithms_parameter = []
                         # Récupération du dictionnaire des propriétés de l'algorithme courant
                         properties = algorithm.get("properties", None)
                         if properties is not None:
                             # Récupération des données des propriétés de l'algorithme
                             properties_data = properties["data"]
-                            # Initialisation d'un dictionnaire permettant de stocker les propriétés de l'algorithme courant
-                            properties_dict = {}
-                            # Initialisation d'une liste stockant les types des propriétés de l'algorithme courant
-                            properties_types = []
-                            # Initialisation d'une liste permettant de stocker si les propriétés de l'algorithme sont utilisées ou non dans l'algorithme
-                            is_parameter = []
                             # Création d'une classe de propriétés vide héritant de PropertyGroup qui englobera l'ensemble des propriétés de l'algorithme courant
                             property_class = type(properties["class_name"], (bpy.types.PropertyGroup,), {})
 
@@ -565,14 +610,11 @@ def load_algorithms():
                                 property_constructor, default_value = Globals.properties_factory[property["type"]](property["data"])
                                 setattr(property_class, property["id_name"], property_constructor)
                                 # Association du nom de la propriété courante à sa valeur par défaut dans la table des propriétés
-                                # Globals.algorithm_properties[algorithm_name][property["id_name"]] = default_value
                                 properties_dict[property["id_name"]] = default_value
                                 # Ajout du type de la propriété dans le conteneur correspondant
                                 properties_types.append(property["type"])
-                                # Récupération du booléen permettant de savoir si la propriété courante est utilisée ou non dans l'algorithme
-                                is_parameter.append(False if property.get("is_parameter", "") == "false" else True)                 
-                                # Globals.properties_factory[property["type"]](property_class, property["data"], property["id_name"])
-                                # ajout du nom de la propriété dans la liste des propriétés de cet algorithme
+                                # Récupération de la valeur permettant de savoir si la propriété courante est utilisée ou non dans l'algorithme et, si oui, dans quel sous-algorithme
+                                sub_algorithms_parameter.append(property.get("algorithm_step", -1))                 
                             # Stockage de la classe nouvellement créée dans une table permettant de la désinscrire du registre de Blender lors de l'appel de la fonction "unregister"
                             Globals.properties_table[algorithm_name] = property_class
                             # Ajout du dictionnaire de propriétés dans la table algorithm_properties
@@ -580,16 +622,16 @@ def load_algorithms():
                             # Ajout de la liste des types des propriétés dans la table algorithm_properties
                             algorithm_props.append(properties_types)
                             # Ainsi que la liste indiquant si les propriétés précédentes sont utilisées dans l'algorithme
-                            algorithm_props.append(is_parameter)
+                            Globals.algorithm_steps[algorithm_name].append(sub_algorithms_parameter)
                         
                             # et référencement de la classe par un attribut
                             setattr(bpy.types.Scene, algorithm_name, bpy.props.PointerProperty(type=property_class))
                         else:
                             algorithm_props.append(properties_dict)
                             algorithm_props.append(properties_types)
-                            algorithm_props.append(is_parameter)
+                            Globals.algorithm_steps[algorithm_name].append(sub_algorithms_parameter)
                         # Ajout de la fonction utilisée pour l'algorithme (cas de MeshLab)
-                        algorithm_props.append(algorithm.get("function_name", ""))                   
+                        algorithm_props.append(algorithm.get("functions_name", []))                   
         else:
             pass
 
@@ -685,7 +727,7 @@ class VIEW3D_OT_load_configuration(bpy.types.Operator, ImportHelper):
                 setattr(algorithm_properties, property_name, value)
         else:
             raise RuntimeError("Une erreur s'est produite lors de la lecture du fichier de configuration JSON. Vérifiez que la structure contient bien un champ 'algorithm'.")
-        # Nous forçons la réactualisation de l'interface de l'extension
+        # Nous forçons le rafraichissement de l'interface de l'extension
         context.area.tag_redraw()
 
     def execute(self, context):

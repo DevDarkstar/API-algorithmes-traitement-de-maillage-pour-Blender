@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <functional>
+#include <memory>
 
 class Router{
 public:
@@ -14,8 +15,8 @@ public:
     pybind11::dict get_result();
 
 private:
-    static std::vector<std::map<std::string, std::function<Algorithm*(const pybind11::dict&)>>> algorithms_table;
-    Algorithm* m_current_algorithm;
+    static std::vector<std::map<std::string, std::function<std::unique_ptr<Algorithm>(const pybind11::dict&)>>> algorithms_table;
+    std::unique_ptr<Algorithm> m_current_algorithm;
 };
 
 #endif

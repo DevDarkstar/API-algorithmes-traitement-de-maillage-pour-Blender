@@ -13,8 +13,10 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
     //Toutes les données, provenant de notre structure de données python, sont castées vers leurs types C++ idoines
     const std::vector<double> vertices = data["vertices"].cast<std::vector<double>>();
     const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
-    this->m_clusters = data["params"]["clusters"].cast<int>();
-    this->m_smoothness = data["params"]["smoothness"].cast<double>();
+    py::list params = data["params"].cast<py::list>();
+    py::dict algorithm_parameters = params[0].cast<py::dict>();
+    this->m_clusters = algorithm_parameters["clusters"].cast<int>();
+    this->m_smoothness = algorithm_parameters["smoothness"].cast<double>();
     this->m_output_option = data["options"]["output_option"].cast<std::string>();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
@@ -61,7 +63,7 @@ void SurfaceMeshSegmentation::compute_algorithm(){
         if(this->m_output_option == "SEGMENTS_COLOR"){
             //this->m_output_data["colors_number"] = number_of_segments; 
             this->set_segments_ids_to_colors(number_of_segments);
-            this->m_output_data["output_result"] = "face_coloration";
+            this->m_output_data["output_result"] = std::array<std::string,1>{"face_coloration"};
         }
         else{
             // Création du message de résultat
@@ -73,10 +75,11 @@ void SurfaceMeshSegmentation::compute_algorithm(){
                                     % this->m_smoothness 
                                     % number_of_segments;
             this->m_output_data["result_infos"] = message.str();
-            this->m_output_data["output_result"] = "message";
+            this->m_output_data["output_result"] = std::array<std::string,1>{"message"};
         }
     }catch(const std::exception& e){
         std::cerr << "Une erreur s'est produite lors de l'exécution de l'algorithme de segmentation de CGAL : " << e.what() << std::endl;
+        throw;
     }
 }
 

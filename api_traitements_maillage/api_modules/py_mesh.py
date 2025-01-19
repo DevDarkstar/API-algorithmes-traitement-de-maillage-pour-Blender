@@ -28,12 +28,12 @@ class PyMeshApi:
             raise RuntimeError("Le dictionnaire des données ne possède pas les indices des sommets des faces.")
         
         # Récupération du nom de la fonction MeshLab utilisée pour exécuter l'algorithme
-        function_name = self.data.get("function", None)
-        if function_name is None:
+        functions_name = self.data.get("function", None)
+        if functions_name is None:
             raise RuntimeError("Le dictionnaire des données ne possède pas le nom de la fonction MeshLab à exécuter.")
         
         # Récupération des éventuels paramètres utilisés pour la fonction MeshLab
-        params = self.data.get("params", {})
+        params = self.data.get("params")
 
         # Création d'un MeshSet pour exécuter l'algorithme
         ms = pymeshlab.MeshSet()
@@ -44,18 +44,19 @@ class PyMeshApi:
         # Ajout du maillage dans le MeshSet
         ms.add_mesh(mesh)
 
-        # Exécution de l'algorithme sur le maillage sous la forme d'un application de filtre
-        ms.apply_filter(function_name, **params)
+        # Exécution des sous-algorithmes de l'algorithme principal sur le maillage sous la forme d'un application de filtre
+        for function_name, param in zip(functions_name, params):
+            ms.apply_filter(function_name, **param)
 
         # Récupération du maillage résultant
         resulting_mesh = ms.current_mesh()
 
         # Récupération des données en fonction de la fonction MeshLab utilisée
-        if function_name in ["compute_curvature_and_color_apss_per_vertex"]:
-            self.result["output_result"] = "vertex_coloration"
+        if all(function_name in ["compute_curvature_and_color_apss_per_vertex"] for function_name in functions_name):
+            self.result["output_result"] = ["vertex_coloration"]
             self.result["colors"] = resulting_mesh.vertex_color_matrix().flatten()
-        elif function_name in ["meshing_isotropic_explicit_remeshing", "create_fractal_terrain"]:
-            self.result["output_result"] = "replace_mesh"
+        elif all(function_name in ["meshing_isotropic_explicit_remeshing", "create_fractal_terrain"] for function_name in functions_name):
+            self.result["output_result"] = ["replace_mesh"]
             self.result["vertices"] = resulting_mesh.vertex_matrix().flatten()
             self.result["faces"] = resulting_mesh.face_matrix().flatten()
         else:

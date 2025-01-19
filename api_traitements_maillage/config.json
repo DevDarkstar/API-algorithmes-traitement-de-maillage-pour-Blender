@@ -9,6 +9,7 @@
                         "id_name": "segmentation_cgal",
                         "name": "Surface Mesh Segmentation (CGAL)",
                         "description": "Implémentation de l'algorithme de Segmentation (décomposition d'un maillage à faces triangulaires en sous-maillages plus petits et significatifs).",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
                         "properties": {
                             "class_name": "CgalSegmentationProperties",
@@ -16,7 +17,7 @@
                                 {
                                     "id_name": "clusters",
                                     "type": "integer",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Clusters",
                                         "description": "Nombre de clusters de l'algorithme de segmentation",
@@ -28,7 +29,7 @@
                                 {
                                     "id_name": "smoothness",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Finesse",
                                         "description": "Finesse de la segmentation (plus la valeur est élevée, plus le nombre de segments résultants le sera également)",
@@ -40,7 +41,7 @@
                                 {
                                     "id_name": "output_option",
                                     "type": "enum",
-                                    "is_parameter": "false",
+                                    "algorithm_step": -1,
                                     "data": {
                                         "name": "Sortie",
                                         "items": [
@@ -60,7 +61,7 @@
                                 {
                                     "id_name": "delete_materials",
                                     "type": "boolean",
-                                    "is_parameter": "false",
+                                    "algorithm_step": -1,
                                     "data": {
                                         "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
@@ -74,6 +75,7 @@
                         "id_name": "simplification_cgal",
                         "name": "Surface Mesh Decimation (CGAL)",
                         "description": "Décimation d'un maillage à faces triangulaires par implémentantation de l'algorithme 'Triangulated Surface Mesh Simplification' de Lindstrom-Turk.",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
                         "properties": {
                             "class_name": "CgalSimplificationProperties",
@@ -81,7 +83,7 @@
                                 {
                                     "id_name": "decimation_factor",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Facteur de décimation",
                                         "description": "Facteur de décimation du maillage",
@@ -97,6 +99,7 @@
                         "id_name": "area_computation_cgal",
                         "name": "Calcul d'aire (CGAL)",
                         "description": "Calcul de l'aire du maillage courant.",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"]
                     }
                 ]
@@ -108,13 +111,14 @@
                         "id_name": "test_cpp",
                         "name": "Test d'un algorithme C++ pur",
                         "description": "Test d'une algorithme C++ pur pour afficher du texte et ou créer une pyramide dans la fenêtre d'affichage de Blender.",
+                        "steps": 1,
                         "properties": {
                             "class_name": "CppTestProperties",
                             "data": [
                                 {
                                     "id_name": "output_option",
                                     "type": "enum",
-                                    "is_parameter": "false",
+                                    "algorithm_step": -1,
                                     "data": {
                                         "name": "Sortie",
                                         "items": [
@@ -148,15 +152,16 @@
                         "id_name": "colorize_curvature_apss",
                         "name": "Colorisation de courbure (MeshLab)",
                         "description": "Colorisation des sommets d'un maillage ou d'un ensemble de points en utilisant la courbure de la surface sous-jacente. Il s'agit de la variante des surfaces algébriques d'ensembles de points (APSS) qui est basée sur l'ajustement local de sphères algébriques.",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
-                        "function_name": "compute_curvature_and_color_apss_per_vertex",
+                        "functions_name": ["compute_curvature_and_color_apss_per_vertex"],
                         "properties": {
                             "class_name" : "ComputeCurvatureAndColorApssPerVertex",
                             "data": [
                                 {
                                     "id_name": "filterscale",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Echelle du filtre",
                                         "description": "Echelle du filtre passe-bas spatial.",
@@ -168,7 +173,7 @@
                                 {
                                     "id_name": "projectionaccuracy",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Précision de projection",
                                         "description": "Valeur seuil utilisée pour arrêter les projections.",
@@ -180,7 +185,7 @@
                                 {
                                     "id_name": "maxprojectioniters",
                                     "type": "integer",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Nombre maximal d'itérations",
                                         "description": "Nombre maximal d'itérations pour la projection",
@@ -192,7 +197,7 @@
                                 {
                                     "id_name": "sphericalparameter",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Paramètre sphérique",
                                         "description": "Contrôle la courbure des sphères ajustées : 0 équivaut à un ajustement plan pur, 1 à un ajustement sphérique pur, les valeurs entre 0 et 1 donnent des résultats intermédiaires, tandis que d'autres valeurs réelles peuvent donner des résultats intéressants, mais attention aux paramètres extrêmes !.",
@@ -204,7 +209,7 @@
                                 {
                                     "id_name": "curvaturetype",
                                     "type": "enum",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Type de courbure",
                                         "items": [
@@ -239,7 +244,7 @@
                                 {
                                     "id_name": "delete_materials",
                                     "type": "boolean",
-                                    "is_parameter": "false",
+                                    "algorithm_step": -1,
                                     "data": {
                                         "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
@@ -253,15 +258,16 @@
                         "id_name": "isotropic_explicit_remeshing",
                         "name": "Remaillage isotrope explicite (MeshLab)",
                         "description": "Effectue un remaillage explicite d'un maillage triangulaire, en appliquant à plusieurs reprises des opérations de retournement de bord, d'effondrement, de relaxation et d'affinage pour régulariser la taille et la ration d'aspect du maillage triangulaire. Librement inspiré par: Hugues Hoppe, Tony DeRose, Tom Duchamp, John McDonald et Werner Stuetzle.",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
-                        "function_name": "meshing_isotropic_explicit_remeshing",
+                        "functions_name": ["meshing_isotropic_explicit_remeshing"],
                         "properties": {
                             "class_name" : "ComputeIsotropicExplicitRemeshing",
                             "data": [
                                 {
                                     "id_name": "iterations",
                                     "type": "integer",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Nombre d'itérations",
                                         "description": "Nombre d'itérations des opérations de remaillage à répéter sur le maillage.",
@@ -273,7 +279,7 @@
                                 {
                                     "id_name": "adaptive",
                                     "type": "boolean",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Remaillage adaptatif ?",
                                         "description": "Active / Désactive le remaillage isotrope adaptatif",
@@ -283,7 +289,7 @@
                                 {
                                     "id_name": "targetlen",
                                     "type": "percentage_value",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Longueur de cible",
                                         "description": "Définit la longueur cible pour les bords de maille remaillés.",
@@ -295,7 +301,7 @@
                                 {
                                     "id_name": "featuredeg",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Angle de Frottement",
                                         "description": "Angle minimum entre les faces du maillage original pour considérer le bord partagé comme une caractéristique à préserver.",
@@ -307,7 +313,7 @@
                                 {
                                     "id_name": "checksurfdist",
                                     "type": "boolean",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Vérifier la déviation maximale de surface ?",
                                         "description": "Si elle est cochée, chaque opération locale doit s'écarter du maillage d'origine par [Max. distance de surface].",
@@ -317,7 +323,7 @@
                                 {
                                     "id_name": "maxsurfdist",
                                     "type": "percentage_value",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Déviation maximale de surface",
                                         "description": "Déviation maximale de surface autorisée pour chaque opération locale.",
@@ -329,7 +335,7 @@
                                 {
                                     "id_name": "splitflag",
                                     "type": "boolean",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Affiner les opérations de remaillage ?",
                                         "description": "Si elle est cochée, les opérations de remaillage incluront une étape d'affinage.",
@@ -339,7 +345,7 @@
                                 {
                                     "id_name": "smoothflag",
                                     "type": "boolean",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Lissage du maillage ?",
                                         "description": "Si elle est cochée, les opérations de remaillage incluront une étape de changement de bord, visant à améliorer la valence vertex du maillage résultant.",
@@ -353,15 +359,16 @@
                         "id_name": "fractal_terrain",
                         "name": "Créer un terrain fractal (MeshLab)",
                         "description": "Génère une perturbation de terrain fractale avec cinq algorithmes différents.",
+                        "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
-                        "function_name": "create_fractal_terrain",
+                        "functions_name": ["create_fractal_terrain"],
                         "properties": {
                             "class_name" : "CreateFractalTerrain",
                             "data": [
                                 {
                                     "id_name": "steps",
                                     "type": "integer",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Etapes de subdivision",
                                         "description": "Définit le niveau de détail du terrain généré. Les valeurs autorisées sont comprises entre [2,9]. Utilisez des valeurs comprises entre 6 et 9 pour obtenir des résultats raisonnables.",
@@ -373,7 +380,7 @@
                                 {
                                     "id_name": "maxheight",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Hauteur maximale",
                                         "description": "Définit la hauteur de perturbation maximale en tant que fraction du côté du terrain.",
@@ -385,7 +392,7 @@
                                 {
                                     "id_name": "scale",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Facteur d'échelle",
                                         "description": "Ajuste la perturbation fractale en fonction de l'échelle. Les valeurs supérieures à 1 signifient un zoom arrière ; les valeurs inférieures à 1 signifient un zoom avant.",
@@ -397,7 +404,7 @@
                                 {
                                     "id_name": "seed",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Seed",
                                         "description": "En faisant varier cette seed, la morphologie du terrain va changer. Ne changez pas la seed si vous souhaitez affiner la morphologie actuelle du terrain en changeant les autres paramètres.",
@@ -409,7 +416,7 @@
                                 {
                                     "id_name": "algorithm",
                                     "type": "enum",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Algorithme",
                                         "items": [
@@ -444,7 +451,7 @@
                                 {
                                     "id_name": "octaves",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Octaves",
                                         "description": "Nombre de fréquences de bruit Perlin qui seront utilisées pour générer le terrain. Les valeurs raisonnables se situent dans la plage [2,9].",
@@ -456,7 +463,7 @@
                                 {
                                     "id_name": "lacunarity",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Lacunarité",
                                         "description": "Ecart entre les fréquences de bruit. Ce paramètre est utilisé conjointement avec l'incrément fractal pour calculer les poids spectraux qui contribuent au bruit dans chaque octave.",
@@ -468,7 +475,7 @@
                                 {
                                     "id_name": "lacunarity",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Lacunarité",
                                         "description": "Ecart entre les fréquences de bruit. Ce paramètre est utilisé conjointement avec l'incrément fractal pour calculer les poids spectraux qui contribuent au bruit dans chaque octave.",
@@ -480,7 +487,7 @@
                                 {
                                     "id_name": "fractalincrement",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Incrément fractal",
                                         "description": "Ce paramètre définit la rugosité du terrain généré. La plage de valeurs raisonnables varie en fonction de l'algorithme utilisé, mais vous pouvez la choisir dans la plage [0,2, 1,5].",
@@ -492,7 +499,7 @@
                                 {
                                     "id_name": "offset",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Offset",
                                         "description": "Ce paramètre contrôle la multifractalité du terrain généré. Si le décalage est faible, le terrain sera lisse.",
@@ -504,7 +511,7 @@
                                 {
                                     "id_name": "gain",
                                     "type": "float",
-                                    "is_parameter": "true",
+                                    "algorithm_step": 1,
                                     "data": {
                                         "name": "Gain",
                                         "description": "Ignoré dans tous les algorithmes sauf celui avec crête. Ce paramètre définit la dureté du terrain.",

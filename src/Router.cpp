@@ -2,18 +2,19 @@
 #include "SurfaceMeshSimplification.hpp"
 #include "SurfaceMeshSegmentation.hpp"
 #include "SurfaceAreaComputation.hpp"
+#include <stdexcept>
+#include <iostream>
 #include "TestCpp.hpp"
-//#include <iostream>
 
 namespace py = pybind11;
 
-std::vector<std::map<std::string, std::function<Algorithm*(const pybind11::dict&)>>> Router::algorithms_table = 
+std::vector<std::map<std::string, std::function<std::unique_ptr<Algorithm>(const pybind11::dict&)>>> Router::algorithms_table = 
                                                             {
                                                                 {
-                                                                    {"segmentation_cgal", [](const py::dict& data){ return new SurfaceMeshSegmentation(data); }},
-                                                                    {"simplification_cgal", [](const py::dict& data){ return new SurfaceMeshSimplification(data); }},
-                                                                    {"area_computation_cgal", [](const py::dict& data){ return new SurfaceAreaComputation(data); }},
-                                                                    {"test_cpp", [](const py::dict& data){ return new TestCpp(data); }}
+                                                                    {"segmentation_cgal", [](const py::dict& data){ return std::make_unique<SurfaceMeshSegmentation>(data); }},
+                                                                    {"simplification_cgal", [](const py::dict& data){ return std::make_unique<SurfaceMeshSimplification>(data); }},
+                                                                    {"area_computation_cgal", [](const py::dict& data){ return std::make_unique<SurfaceAreaComputation>(data); }},
+                                                                    {"test_cpp", [](const py::dict& data){ return std::make_unique<TestCpp>(data); }}
                                                                 }
                                                             };
 
@@ -23,14 +24,19 @@ Router::Router(int id, std::string algorithm_name, py::dict data): m_current_alg
 
 Router::~Router()
 {
-    delete m_current_algorithm;
+    //delete m_current_algorithm;
     // débogage
     //std::cout << "La mémoire allouée au router a bien été liberée" << std::endl;
 }
 
 void Router::init()
 {
-    this->m_current_algorithm->compute_algorithm();
+    try{
+        this->m_current_algorithm->compute_algorithm();
+    }catch(const std::exception& e){
+        std::cerr << "Une erreur s'est produite lors de l'exécution d'un algorithme de l'API C++ : " << e.what() << std::endl;
+        throw;
+    }
 }
 
 py::dict Router::get_result()
