@@ -522,6 +522,123 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "id_name": "point_cloud_to_mesh",
+                        "name": "Transformation d'un nuage de points en surface maillée (MeshLab)",
+                        "description": "Transforme un nuage de points en surface maillée. L'algorithme se divise en 3 étapes : une simplification du nuage de points, le calcul des normales aux sommets, et une reconstruction de la surface en utilisant de 'ball pivoting'.",
+                        "steps": 3,
+                        "input": ["vertex_coordinates", "color_data"],
+                        "functions_name": ["generate_simplified_point_cloud", "compute_normal_for_point_clouds", "generate_surface_reconstruction_ball_pivoting"],
+                        "properties": {
+                            "class_name" : "PointCloudToMesh",
+                            "data": [
+                                {
+                                    "id_name": "samplenum",
+                                    "type": "integer",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Nombre d'échantillons",
+                                        "description": "Le nombre d'échantillons souhaité pour la simplification du nuage de points. Le rayon du disque est calculé en fonction de la densité d'échantillonnage. Plus la valeur est faible, plus le nombre de sommets conservés sera faible et inversement.",
+                                        "default": 100000,
+                                        "min": 0,
+                                        "max": 1000000
+                                    }         
+                                },
+                                {
+                                    "id_name": "radius",
+                                    "type": "percentage_value",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Rayon explicite",
+                                        "description": "S'il n'est pas nul, ce paramètre remplace le paramètre du nombre d'échantillons pour permettre une spécification exacte du rayon.",
+                                        "default": 0,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "bestsampleflag",
+                                    "type": "boolean",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Meilleure heuristique d'échantillon ?",
+                                        "description": "Si cette option est vraie, elle utilisera une heuristique simple pour choisir les échantillons. À un coût minime (cela peut ralentir un peu le processus), elle améliore généralement la maximalité de l'échantillonnage généré.",
+                                        "default": "true"
+                                    }                      
+                                },
+                                {
+                                    "id_name": "bestsamplepool",
+                                    "type": "integer",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Taille du pool d'échantillons optimal",
+                                        "description": "Utilisé uniquement si l'indicateur 'Meilleur heuristique d'échantillon' est vrai. Il contrôle le nombre de tentatives effectuées pour obtenir le meilleur échantillon. Il est raisonnable qu'il soit inférieur au facteur de suréchantillonnage de Montecarlo.",
+                                        "default": 10,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "k",
+                                    "type": "integer",
+                                    "algorithm_step": 2,
+                                    "data": {
+                                        "name": "Nombre de voisins",
+                                        "description": "Le nombre de voisins utilisé pour estimer les normales.",
+                                        "default": 10,
+                                        "min": 0,
+                                        "max": 15
+                                    }         
+                                },
+                                {
+                                    "id_name": "smoothiter",
+                                    "type": "integer",
+                                    "algorithm_step": 2,
+                                    "data": {
+                                        "name": "Itération de lissage",
+                                        "description": "Nombre d'itérations de lissage effectuées sur le p utilisé pour estimer et propager les normales.",
+                                        "default": 0,
+                                        "min": 0,
+                                        "max": 10
+                                    }         
+                                },
+                                {
+                                    "id_name": "flipflag",
+                                    "type": "boolean",
+                                    "algorithm_step": 2,
+                                    "data": {
+                                        "name": "Inverser les normales par rapport au point de vue ?",
+                                        "description": "Si le « point de vue » (c'est-à-dire la position du scanner) est connu, il peut être utilisé pour lever l'ambiguïté sur l'orientation des normales, de sorte que toutes les normales soient orientées dans la même direction.",
+                                        "default": "false"
+                                    }                      
+                                },
+                                {
+                                    "id_name": "ballradius",
+                                    "type": "percentage_value",
+                                    "algorithm_step": 3,
+                                    "data": {
+                                        "name": "Rayon de la boule pivotante",
+                                        "description": "Le rayon de la boule pivotante (roulant) sur l'ensemble des points. Les espaces plus grands que le rayon de la boule ne seront pas comblés; de même, les petits creux plus petits que le rayon de la boule seront comblés.",
+                                        "default": 0,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "clustering",
+                                    "type": "float",
+                                    "algorithm_step": 3,
+                                    "data": {
+                                        "name": "Rayon de clustering (% du rayon de la boule)",
+                                        "description": "Pour éviter la création de triangles trop petits, si un sommet est trouvé trop proche d'un précédent, il est clusterisé/fusionné avec lui.",
+                                        "default": 20,
+                                        "min": 0,
+                                        "max": 100
+                                    }         
+                                }
+                            ]
+                        }
                     }
                 ]
             }
