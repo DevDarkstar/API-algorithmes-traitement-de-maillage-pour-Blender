@@ -26,20 +26,17 @@ class PyMeshApi:
             raise RuntimeError("Le dictionnaire des données ne possède pas le nom de la fonction MeshLab à exécuter.")
 
         # Pareil pour les indices des sommets des faces
-        faces = self.data.get("faces", np.array([], dtype=np.int32).reshape(0,3))
-        if faces.size > 0:
-            faces = np.reshape(faces, (faces.shape[0] // 3, 3))
+        faces = self.data.get("faces", np.array([], dtype=np.int32))
+        faces = np.reshape(faces, (faces.shape[0] // 3, 3))
         
         # Récupération d'éventuelles informations de couleurs du maillage
         # Pour les sommets
-        vertex_color = self.data.get("vertex_color", np.array([], dtype=np.float64).reshape(0,4))
-        if vertex_color.size > 0:
-            vertex_color = np.reshape(vertex_color, (vertex_color.shape[0] // 4, 4))
+        vertex_color = self.data.get("vertex_color", np.array([], dtype=np.float64))
+        vertex_color = np.reshape(vertex_color, (vertex_color.shape[0] // 4, 4))
         
         # Pour les faces
-        face_color = self.data.get("face_color", np.array([], dtype=np.float64).reshape(0,4))
-        if face_color.size > 0:
-            face_color = np.reshape(face_color, (face_color.shape[0] // 4, 4))
+        face_color = self.data.get("face_color", np.array([], dtype=np.float64))
+        face_color = np.reshape(face_color, (face_color.shape[0] // 4, 4))
         
         # Récupération des éventuels paramètres utilisés pour la fonction MeshLab
         params = self.data.get("params")
@@ -61,7 +58,7 @@ class PyMeshApi:
         resulting_mesh = ms.current_mesh()
 
         # Récupération des données en fonction de la fonction MeshLab utilisée
-        if all(function_name in ["compute_curvature_and_color_apss_per_vertex"] for function_name in functions_name):
+        if all(function_name in ["compute_curvature_and_color_apss_per_vertex", "compute_color_perlin_noise_per_vertex"] for function_name in functions_name):
             self.result["output_result"] = ["vertex_coloration"]
             self.result["colors"] = resulting_mesh.vertex_color_matrix().flatten()
         elif all(function_name in ["meshing_isotropic_explicit_remeshing", "create_fractal_terrain"] for function_name in functions_name):

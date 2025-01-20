@@ -263,6 +263,17 @@ def create_enum_property(data):
         default="DEFAULT"), "DEFAULT"
 
 
+# Création d'une FloatVectorProperty à la volée
+def create_float_vector_property(data):
+    default_value = tuple(data.get("default", [0,0,0]))
+    return bpy.props.FloatVectorProperty(name=data.get("name", ""),
+        description=data.get("description",""),
+        default=default_value,  # Valeur par défaut
+        min=data.get("min", 0),  # Valeur minimale
+        max=data.get("max", 1),  # Valeur maximale
+        subtype=data.get("subtype","none").upper()), default_value
+
+
 ## Fonctions de préparation du maillage et de collecte des données à envoyer aux algorithmes côté C++
 # Fonction permettant de triangulariser un maillage en mode "OBJET"
 def triangulate_mesh(object, data):
@@ -342,7 +353,15 @@ def get_percentage_value_instance(value):
 
 
 def get_pure_value_instance(value):
-    return pymeshlab.PureValue(value) 
+    return pymeshlab.PureValue(value)
+
+
+def get_color_instance(value):
+    return pymeshlab.Color(round(value.r * 255), round(value.g * 255), round(value.b * 255))
+
+
+def get_numpy_float_array(value):
+    return np.array(value, dtype=np.float64)
 
 
 # Variables globales
@@ -353,7 +372,9 @@ class Globals:
                          "boolean": create_boolean_property,
                          "enum": create_enum_property,
                          "percentage_value": create_float_property,
-                         "pure_value": create_float_property}
+                         "pure_value": create_float_property,
+                         "color": create_float_vector_property,
+                         "float_array": create_float_vector_property}
     # Fabrique à préparation du maillage et des données à envoyer côté C++
     inputs_factory = {"triangulation": triangulate_mesh,
                       "vertex_coordinates": get_vertex_coordinates,
@@ -388,7 +409,9 @@ class Globals:
     last_loaded_configuration = {}
     # Table permettant de convertir les valeurs des propriétés Blender vers des types MeshLab
     meshlab_types = {"percentage_value": get_percentage_value_instance,
-                     "pure_value": get_pure_value_instance}
+                     "pure_value": get_pure_value_instance,
+                     "color": get_color_instance,
+                     "float_array": get_numpy_float_array}
 
 
 def create_description(content):
@@ -473,7 +496,7 @@ def compute_algorithm(context):
                     options[property_name] = getattr(property_group, property_name)
                 else:
                     # Vérification si la valeur n'est pas de type Meshlab
-                    if algorithm_data[2][i] not in ["percentage_value", "pure_value"]:
+                    if algorithm_data[2][i] not in ["percentage_value", "pure_value", "color", "float_array"]:
                         params[algorithm_steps[1][i] - 1][property_name] = getattr(property_group, property_name)
                     else:
                         params[algorithm_steps[1][i] - 1][property_name] = Globals.meshlab_types[algorithm_data[2][i]](getattr(property_group, property_name))           

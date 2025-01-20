@@ -639,6 +639,70 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "id_name": "color_perlin_noise_vertex",
+                        "name": "Coloration des sommets du maillage en utilisant un bruit de Perlin (MeshLab)",
+                        "description": "Coloration des sommets du maillage en utilisant un bruit de Perlin.",
+                        "steps": 1,
+                        "input": ["triangulation", "vertex_coordinates", "face_indices"],
+                        "functions_name": ["compute_color_perlin_noise_per_vertex"],
+                        "properties": {
+                            "class_name" : "PerlinNoiseToVertex",
+                            "data": [
+                                {
+                                    "id_name": "color1",
+                                    "type": "color",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Couleur 1",
+                                        "description": "Définit la première couleur du bruit de Perlin résultant.",
+                                        "default": [0,0,0],
+                                        "min": 0,
+                                        "max": 1,
+                                        "subtype": "color"
+                                    }         
+                                },
+                                {
+                                    "id_name": "color2",
+                                    "type": "color",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Couleur 2",
+                                        "description": "Définit la deuxième couleur du bruit de Perlin résultant.",
+                                        "default": [1,1,1],
+                                        "min": 0,
+                                        "max": 1,
+                                        "subtype": "color"
+                                    }         
+                                },
+                                {
+                                    "id_name": "freq",
+                                    "type": "float",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Fréquence",
+                                        "description": "Fréquence de la fonction de bruit de Perlin, exprimée en multiples de la bbox du maillage (fréquence 10 signifie une période de bruit de diagonale de bbox / 10). Les hautes fréquences produisent de nombreuses petites éclaboussures de couleurs, tandis que les basses fréquences produisent peu de grosses éclaboussures.",
+                                        "default": 10,
+                                        "min": 0.1,
+                                        "max": 100
+                                    }         
+                                },
+                                {
+                                    "id_name": "offset",
+                                    "type": "float_array",
+                                    "algorithm_step": 1,
+                                    "data": {
+                                        "name": "Décalage",
+                                        "description": "Cette valeur correspond au décalage de fréquence XYZ de la fonction Bruit (décalage 1 signifie un décalage de 1 période).",
+                                        "default": [0,0,0],
+                                        "min": 0,
+                                        "max": 1000,
+                                        "subtype": "xyz"
+                                    }         
+                                }
+                            ]
+                        }
                     }
                 ]
             }
