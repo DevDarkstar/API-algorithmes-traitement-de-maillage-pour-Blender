@@ -642,7 +642,7 @@
                     },
                     {
                         "id_name": "color_perlin_noise_vertex",
-                        "name": "Coloration des sommets du maillage en utilisant un bruit de Perlin (MeshLab)",
+                        "name": "Coloration bruit de Perlin (MeshLab)",
                         "description": "Coloration des sommets du maillage en utilisant un bruit de Perlin.",
                         "steps": 1,
                         "input": ["triangulation", "vertex_coordinates", "face_indices"],
@@ -696,8 +696,8 @@
                                         "name": "Décalage",
                                         "description": "Cette valeur correspond au décalage de fréquence XYZ de la fonction Bruit (décalage 1 signifie un décalage de 1 période).",
                                         "default": [0,0,0],
-                                        "min": 0,
-                                        "max": 1000,
+                                        "min": -100,
+                                        "max": 100,
                                         "subtype": "xyz"
                                     }         
                                 }

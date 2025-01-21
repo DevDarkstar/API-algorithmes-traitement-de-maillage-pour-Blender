@@ -13,6 +13,7 @@ bl_info = {
 import bpy
 from bpy_extras.io_utils import ImportHelper, ExportHelper
 import bmesh
+from mathutils import Vector, Color
 import numpy as np
 import json
 import os
@@ -805,16 +806,25 @@ class VIEW3D_OT_save_configuration(bpy.types.Operator, ExportHelper):
         if algorithm_properties is not None:
             # Création d'un champ dans le dictionnaire contenant l'ensemble des propriétés de l'algorithme
             self.data["properties"] = {}
+            # Création d'une table permettant de remplacer des caractères par d'autres
+            translation_table = str.maketrans({'[': '_', ']': '_', '.': '_', ',': '_'})
             # parcours des noms des propriétés associées à l'algorithme courant
             for prop_attribute in Globals.algorithm_properties[algorithm_name][1].keys():
                 # Récupération de la valeur associée à la propriété courante
                 value = getattr(algorithm_properties, prop_attribute)
+                # Si le paramètre est un nombre à virgule, nous l'arrondissons à deux décimales après la virgule
                 if isinstance(value, (float,)):
-                    value = round(value,2)
+                    result = round(value,2)
+                # sinon si le paramètre est de type Vector ou Color (types issus des propriétés XVectorProperty)
+                elif isinstance(value, (Color, Vector)):
+                    if isinstance(value[0], (float,)):
+                        result = [round(value[0],2), round(value[1],2), round(value[2],2)]
+                    else:
+                        result = [value[0], value[1], value[2]]
                 # stockage de la valeur associée au nom de la propriété dans le dictionnaire des données
-                self.data["properties"][prop_attribute] = value
+                self.data["properties"][prop_attribute] = result
                 # et mise à jour du nom du fichier
-                filename += prop_attribute + "_" + str(value).replace('.', '_') + "_"
+                filename += prop_attribute + "_" + str(result).translate(translation_table) + "_"
         else:
             pass
         return filename[:-1]
@@ -861,16 +871,76 @@ class VIEW3D_OT_set_properties_to_default(bpy.types.Operator):
 
     def execute(self, context):
         self.reset_properties(context)
-        return {"FINISHED"}        
+        return {"FINISHED"}
+
+class VIEW3D_OT_align_camera_to_view(bpy.types.Operator):
+    """Aligne la vue de la caméra sur la vue de la scène"""
+    bl_idname = "wm.camera_to_scene_view"
+    bl_label = "Aligner la vue caméra sur la vue de la scène"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return bpy.ops.view3d.camera_to_view.poll()
+
+    def execute(self, context):
+        # alignement de la vue caméra sur la vue de la scène
+        bpy.ops.view3d.camera_to_view()
+        return {'FINISHED'}         
 
 
-class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
-    bl_label = "API C++"  # Titre du panneau latéral
-    bl_idname = "VIEW3D_PT_api_cgal_panel"
+class VIEW3D_PT_stereoscopy_panel(bpy.types.Panel):
+    bl_label = "Stéréoscopie"  # Titre du panneau latéral
+    bl_idname = "VIEW3D_PT_stereoscopy_panel"
     bl_space_type = "VIEW_3D"  # espace dans lequel est situé le panneau
     bl_region_type = "UI"  # région dans laquelle le panneau se situe
 
-    bl_category = "API C++"  # nom du panneau dans la barre latérale
+    bl_category = "API C++"  # Nom de l'onglet auquel attacher le panneau
+
+    def draw(self, context):
+        # Récupération de la scène
+        scene = context.scene
+        layout = self.layout
+        layout.use_property_split = False
+
+        row = layout.row()
+        row.scale_y = 1.4
+        row.prop(scene.render, "use_multiview", text="Activer la stéréoscopie ?")
+        # Si l'utilisateur a choisi d'activer la stéréoscopie
+        if scene.render.use_multiview is True:
+            # Récupération des propriétés gérant les zones de clipping de la scène
+            space_data = context.space_data
+            row = layout.row()
+            row.scale_y = 1.4
+            col = row.column(align=True)
+            col.prop(space_data, "clip_start", text="Début du clipping (Scène)")
+            col.prop(space_data, "clip_end", text="Fin du clipping (Scène)")
+            col = layout.column(align=True)
+            col.scale_y = 1.4
+            col.prop(scene, "camera")
+            # Récupération de la référence contenue dans la propriété scene.camera
+            camera = scene.camera
+            # Si une caméra est sélectionnée
+            if camera is not None:
+                # Affichage des zones de clipping de la caméra courante
+                col.prop(camera.data, "clip_start", text="Début du clipping (Caméra)")
+                col.prop(camera.data, "clip_end", text="Fin du clipping (Caméra)")
+                # Affichage des options de la stéréoscopie de la caméra
+                col.prop(camera.data.stereo, "convergence_distance", text="Distance du plan de convergence")
+                col.prop(camera.data.stereo, "interocular_distance", text="Distance interoculaire")
+                col.prop(space_data, "lock_camera", text="Utiliser la vue caméra comme vue de la scène ?")
+                row = layout.row()
+                row.scale_y = 1.7
+                row.operator(VIEW3D_OT_align_camera_to_view.bl_idname, text="Aligner la vue caméra sur la vue de la scène")
+
+
+class VIEW3D_PT_cpp_api_panel(bpy.types.Panel):
+    bl_label = "Algorithmes de traitements de maillages"  # Titre du panneau latéral
+    bl_idname = "VIEW3D_PT_cpp_api_panel"
+    bl_space_type = "VIEW_3D"  # espace dans lequel est situé le panneau
+    bl_region_type = "UI"  # région dans laquelle le panneau se situe
+
+    bl_category = "API C++"  # Nom de l'onglet auquel attacher le panneau
 
     def draw(self, context):
         # Récupération du groupe de propriétés de l'API
@@ -924,7 +994,7 @@ class VIEW3D_PT_api_cgal_panel(bpy.types.Panel):
 
 
 ## Fonctions d'enregistrement, de désincription et de référencement des groupe de propriétés des classes de l'API
-classes = (VIEW3D_PT_api_cgal_panel, VIEW3D_OT_set_properties_to_default, VIEW3D_OT_load_configuration, VIEW3D_OT_save_configuration, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
+classes = (VIEW3D_PT_stereoscopy_panel, VIEW3D_PT_cpp_api_panel, VIEW3D_OT_align_camera_to_view, VIEW3D_OT_set_properties_to_default, VIEW3D_OT_load_configuration, VIEW3D_OT_save_configuration, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
 
 def algorithm_properties_registering():
     # Enregistrement toutes les classes de propriétés des algorithmes de l'API
