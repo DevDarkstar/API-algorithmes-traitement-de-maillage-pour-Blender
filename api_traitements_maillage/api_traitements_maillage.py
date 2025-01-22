@@ -112,8 +112,8 @@ def set_new_mesh(context, data, output_result):
         resulting_mesh.polygons.foreach_set("use_smooth", [0] * (total_face_indices // 3))
 
         # mise à jour du maillage avec sa nouvelle structure
-        resulting_mesh.update()
         resulting_mesh.validate()
+        resulting_mesh.update()
         
         # Création d'un objet Blender auquel associer le maillage nouvellement créé
         obj = bpy.data.objects.new(mesh_name, resulting_mesh)
@@ -994,7 +994,7 @@ class VIEW3D_PT_cpp_api_panel(bpy.types.Panel):
 
 
 ## Fonctions d'enregistrement, de désincription et de référencement des groupe de propriétés des classes de l'API
-classes = (VIEW3D_PT_stereoscopy_panel, VIEW3D_PT_cpp_api_panel, VIEW3D_OT_align_camera_to_view, VIEW3D_OT_set_properties_to_default, VIEW3D_OT_load_configuration, VIEW3D_OT_save_configuration, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
+classes = (VIEW3D_PT_cpp_api_panel, VIEW3D_PT_stereoscopy_panel, VIEW3D_OT_align_camera_to_view, VIEW3D_OT_set_properties_to_default, VIEW3D_OT_load_configuration, VIEW3D_OT_save_configuration, VIEW3D_OT_display_description, VIEW3D_OT_execute_algorithm)
 
 def algorithm_properties_registering():
     # Enregistrement toutes les classes de propriétés des algorithmes de l'API

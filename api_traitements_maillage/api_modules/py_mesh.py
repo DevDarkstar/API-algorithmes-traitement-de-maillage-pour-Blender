@@ -59,12 +59,24 @@ class PyMeshApi:
 
         # Récupération des données en fonction de la fonction MeshLab utilisée
         if all(function_name in ["compute_curvature_and_color_apss_per_vertex", "compute_color_perlin_noise_per_vertex"] for function_name in functions_name):
-            self.result["output_result"] = ["vertex_coloration"]
+            self.result["output_result"] = []
+            # Récupération des coordonnées du maillage résultant
+            resulting_vertices = resulting_mesh.vertex_matrix()
+            # Si le nombre de sommets a varié entre le maillage initial et le maillage résultant
+            if resulting_vertices.shape[0] != vertices.shape[0]:
+                # Nous demandons une recréation du maillage dans Blender
+                self.result["output_result"].append("replace_mesh")
+                self.result["vertices"] = resulting_vertices.flatten()
+                self.result["faces"] = resulting_mesh.face_matrix().flatten()
+            
+            self.result["output_result"].append("vertex_coloration")
             self.result["colors"] = resulting_mesh.vertex_color_matrix().flatten()
+        
         elif all(function_name in ["meshing_isotropic_explicit_remeshing", "create_fractal_terrain"] for function_name in functions_name):
             self.result["output_result"] = ["replace_mesh"]
             self.result["vertices"] = resulting_mesh.vertex_matrix().flatten()
             self.result["faces"] = resulting_mesh.face_matrix().flatten()
+        
         elif all(function_name in ["generate_simplified_point_cloud", "compute_normal_for_point_clouds", "generate_surface_reconstruction_ball_pivoting"] for function_name in functions_name):
             self.result["output_result"] = ["replace_mesh"]
             self.result["vertices"] = resulting_mesh.vertex_matrix().flatten()
