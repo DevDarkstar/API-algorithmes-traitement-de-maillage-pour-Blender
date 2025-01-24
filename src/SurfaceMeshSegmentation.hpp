@@ -30,6 +30,7 @@ private:
     int m_clusters;
     double m_smoothness;
     std::string m_output_option;
+    size_t m_number_of_faces;
 };
 
 #endif

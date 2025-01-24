@@ -244,7 +244,7 @@ def create_float_property(data):
 
 # Création d'une BoolProperty à la volée
 def create_boolean_property(data):
-    default_value = True if data.get("default", "") == "true" else False
+    default_value = data.get("default", False)
     return bpy.props.BoolProperty(name=data.get("name", ""),
         description=data.get("description", ""),
         default=default_value), default_value  # Valeur par défaut
@@ -416,10 +416,10 @@ class Globals:
 
 
 def create_description(content):
+    # Définition du maximum de caractères à afficher par ligne
+    max_row_length = 75
     # Définition du maximum de caractères à afficher dans l'info-bulle de l'algorithme
-    max_length = 300
-    # Définition du maximum de caractères à afficher par ligne (3 lignes en tout)
-    max_row_length = 60
+    max_length = max_row_length * 5
     # Séparation des mots de la description de l'algorithme
     words = content.split(" ")
     lines = []

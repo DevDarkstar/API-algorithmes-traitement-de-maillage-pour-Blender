@@ -65,7 +65,7 @@
                                     "data": {
                                         "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
-                                        "default": "false"
+                                        "default": false
                                     }                      
                                 }
                             ]
@@ -248,7 +248,7 @@
                                     "data": {
                                         "name": "Supprimer matériaux ?",
                                         "description": "Suppression des matériaux déjà associés au maillage",
-                                        "default": "false"
+                                        "default": false
                                     }                      
                                 }
                             ]
@@ -283,7 +283,7 @@
                                     "data": {
                                         "name": "Remaillage adaptatif ?",
                                         "description": "Active / Désactive le remaillage isotrope adaptatif",
-                                        "default": "false"
+                                        "default": false
                                     }                      
                                 },
                                 {
@@ -317,7 +317,7 @@
                                     "data": {
                                         "name": "Vérifier la déviation maximale de surface ?",
                                         "description": "Si elle est cochée, chaque opération locale doit s'écarter du maillage d'origine par [Max. distance de surface].",
-                                        "default": "true"
+                                        "default": true
                                     }                      
                                 },
                                 {
@@ -339,7 +339,7 @@
                                     "data": {
                                         "name": "Affiner les opérations de remaillage ?",
                                         "description": "Si elle est cochée, les opérations de remaillage incluront une étape d'affinage.",
-                                        "default": "true"
+                                        "default": true
                                     }                      
                                 },
                                 {
@@ -349,7 +349,7 @@
                                     "data": {
                                         "name": "Lissage du maillage ?",
                                         "description": "Si elle est cochée, les opérations de remaillage incluront une étape de changement de bord, visant à améliorer la valence vertex du maillage résultant.",
-                                        "default": "true"
+                                        "default": true
                                     }                      
                                 }
                             ]
@@ -526,7 +526,7 @@
                     {
                         "id_name": "point_cloud_to_mesh",
                         "name": "Transformation d'un nuage de points en surface maillée (MeshLab)",
-                        "description": "Transforme un nuage de points en surface maillée. L'algorithme se divise en 3 étapes : une simplification du nuage de points, le calcul des normales aux sommets, et une reconstruction de la surface en utilisant de 'ball pivoting'.",
+                        "description": "Transforme un nuage de points en surface maillée. L'algorithme se divise en 3 étapes : une simplification du nuage de points, le calcul des normales aux sommets, et une reconstruction de la surface en utilisant un algorithme de 'ball pivoting'.",
                         "steps": 3,
                         "input": ["vertex_coordinates", "color_data"],
                         "functions_name": ["generate_simplified_point_cloud", "compute_normal_for_point_clouds", "generate_surface_reconstruction_ball_pivoting"],
@@ -564,7 +564,7 @@
                                     "data": {
                                         "name": "Meilleure heuristique d'échantillon ?",
                                         "description": "Si cette option est vraie, elle utilisera une heuristique simple pour choisir les échantillons. À un coût minime (cela peut ralentir un peu le processus), elle améliore généralement la maximalité de l'échantillonnage généré.",
-                                        "default": "true"
+                                        "default": true
                                     }                      
                                 },
                                 {
@@ -610,7 +610,7 @@
                                     "data": {
                                         "name": "Inverser les normales par rapport au point de vue ?",
                                         "description": "Si le « point de vue » (c'est-à-dire la position du scanner) est connu, il peut être utilisé pour lever l'ambiguïté sur l'orientation des normales, de sorte que toutes les normales soient orientées dans la même direction.",
-                                        "default": "false"
+                                        "default": false
                                     }                      
                                 },
                                 {
@@ -700,6 +700,16 @@
                                         "max": 100,
                                         "subtype": "xyz"
                                     }         
+                                },
+                                {
+                                    "id_name": "delete_materials",
+                                    "type": "boolean",
+                                    "algorithm_step": -1,
+                                    "data": {
+                                        "name": "Supprimer matériaux ?",
+                                        "description": "Suppression des matériaux déjà associés au maillage",
+                                        "default": false
+                                    }                      
                                 }
                             ]
                         }

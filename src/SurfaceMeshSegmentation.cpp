@@ -19,6 +19,9 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
     this->m_smoothness = algorithm_parameters["smoothness"].cast<double>();
     this->m_output_option = data["options"]["output_option"].cast<std::string>();
 
+    // Stockage du nombre de faces du maillage envoyé par Blender
+    this->m_number_of_faces = faces.size() / 3;
+
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;
     //et réservation de l"espace mémoire adéquat
@@ -32,6 +35,8 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
         //Création d"une face du maillage
         this->m_surface_mesh.add_face(vertices_descriptor[faces[i]], vertices_descriptor[faces[i+1]], vertices_descriptor[faces[i+2]]);
     }
+
+    std::cout << "Nombre de faces du maillage original " << this->m_surface_mesh.number_of_faces() << std::endl;
 }
 
 void SurfaceMeshSegmentation::compute_algorithm(){
@@ -63,7 +68,6 @@ void SurfaceMeshSegmentation::compute_algorithm(){
         if(this->m_output_option == "SEGMENTS_COLOR"){
             //this->m_output_data["colors_number"] = number_of_segments; 
             this->set_segments_ids_to_colors(number_of_segments);
-            this->m_output_data["output_result"] = std::array<std::string,1>{"face_coloration"};
         }
         else{
             // Création du message de résultat
@@ -84,11 +88,49 @@ void SurfaceMeshSegmentation::compute_algorithm(){
 }
 
 void SurfaceMeshSegmentation::set_segments_ids_to_colors(const size_t color_number){
+    // Création d'un tableau contenant les opérations à exécuter sur l'algorithme une fois l'algorithme effectué
+    std::vector<std::string> output_result;
+    // Vérification si le nombre de faces reçu par Blender correspond bien au nombre de faces du maillage sur lequel l'algorithme a été effectué
+    if (this->m_number_of_faces != this->m_surface_mesh.number_of_faces())
+    {
+        // Demande de recréer le maillage dans Blender
+        output_result.push_back("replace_mesh");
+        // et stockage des coordonnées des sommets ainsi que des indices des sommets des faces dans le dictionnaire des données exportées
+        // Récupération de la propriété contenant les coordonnées des sommets du maillage
+        const auto& location = this->m_surface_mesh.property_map<vertex_descriptor, Point_3>("v:point").first;
+
+        std::vector<double> vertex_coordinates;
+        vertex_coordinates.reserve(this->m_surface_mesh.number_of_vertices() * 3);
+
+        for(const auto& vertex : this->m_surface_mesh.vertices()) {
+            // Récupération des coordonnées du sommet courant
+            const auto& coords = location[vertex];
+            vertex_coordinates.push_back(coords.x());
+            vertex_coordinates.push_back(coords.y());
+            vertex_coordinates.push_back(coords.z());
+        }
+
+        this->m_output_data["vertices"] = vertex_coordinates;
+
+        // et de même pour les faces
+        std::vector<int> face_indices;
+        face_indices.reserve(this->m_surface_mesh.number_of_faces() * 3);
+        for(const auto& face: this->m_surface_mesh.faces()){
+            for(const auto& vertex: vertices_around_face(this->m_surface_mesh.halfedge(face), this->m_surface_mesh)){
+                face_indices.push_back(vertex.idx());
+            }
+        }
+
+        this->m_output_data["faces"] = face_indices;
+    }
     //Récupération de la property_map contenant les identifiants des segments obtenus
     const auto& segment_property_map = this->m_surface_mesh.property_map<face_descriptor, std::size_t>("f:sid").first;
+    output_result.push_back("face_coloration");
     // Création des couleurs de façon aléatoire et permettant de remplir le tableau des couleurs des faces du maillage ultérieurement
     std::vector<std::array<float, 4>> colors;
     colors.reserve(color_number);
+
+    std::cout << "Nombre de faces du maillage résultant " << this->m_surface_mesh.number_of_faces() << std::endl;
 
     // Génération aléatoire des couleurs
     // Initialisation de la génération de nombres psudo-aléatoires
@@ -114,4 +156,5 @@ void SurfaceMeshSegmentation::set_segments_ids_to_colors(const size_t color_numb
     }
 
     this->m_output_data["colors"] = face_colors;
+    this->m_output_data["output_result"] = output_result;
 }
