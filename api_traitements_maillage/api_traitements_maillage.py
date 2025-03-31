@@ -812,6 +812,7 @@ class VIEW3D_OT_save_configuration(bpy.types.Operator, ExportHelper):
             for prop_attribute in Globals.algorithm_properties[algorithm_name][1].keys():
                 # Récupération de la valeur associée à la propriété courante
                 value = getattr(algorithm_properties, prop_attribute)
+                result = None
                 # Si le paramètre est un nombre à virgule, nous l'arrondissons à deux décimales après la virgule
                 if isinstance(value, (float,)):
                     result = round(value,2)
@@ -821,6 +822,8 @@ class VIEW3D_OT_save_configuration(bpy.types.Operator, ExportHelper):
                         result = [round(value[0],2), round(value[1],2), round(value[2],2)]
                     else:
                         result = [value[0], value[1], value[2]]
+                else:
+                    result = value
                 # stockage de la valeur associée au nom de la propriété dans le dictionnaire des données
                 self.data["properties"][prop_attribute] = result
                 # et mise à jour du nom du fichier

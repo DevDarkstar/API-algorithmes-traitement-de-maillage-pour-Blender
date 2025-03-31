@@ -15,9 +15,9 @@ SurfaceMeshSegmentation::SurfaceMeshSegmentation(const py::dict& data) : m_surfa
     const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
     py::list params = data["params"].cast<py::list>();
     py::dict algorithm_parameters = params[0].cast<py::dict>();
-    this->m_clusters = algorithm_parameters["clusters"].cast<int>();
-    this->m_smoothness = algorithm_parameters["smoothness"].cast<double>();
-    this->m_output_option = data["options"]["output_option"].cast<std::string>();
+    this->m_clusters = py::int_(algorithm_parameters["clusters"]);
+    this->m_smoothness = py::float_(algorithm_parameters["smoothness"]);
+    this->m_output_option = py::str(data["options"]["output_option"]);
 
     // Stockage du nombre de faces du maillage envoyé par Blender
     this->m_number_of_faces = faces.size() / 3;
