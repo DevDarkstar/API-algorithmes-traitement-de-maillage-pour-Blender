@@ -9,13 +9,13 @@
 
 class Router{
 public:
-    Router(int id, std::string algorithm_name, pybind11::dict data);
+    Router(std::string algorithm_name, pybind11::dict data);
     ~Router();
     void init();
     pybind11::dict get_result();
 
 private:
-    static std::vector<std::map<std::string, std::function<std::unique_ptr<Algorithm>(const pybind11::dict&)>>> algorithms_table;
+    static std::map<std::string, std::function<std::unique_ptr<Algorithm>(const pybind11::dict&)>> algorithms_table;
     std::unique_ptr<Algorithm> m_current_algorithm;
 };
 

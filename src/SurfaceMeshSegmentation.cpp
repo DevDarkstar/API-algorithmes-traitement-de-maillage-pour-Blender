@@ -1,4 +1,5 @@
 #include "SurfaceMeshSegmentation.hpp"
+#include <pybind11/numpy.h>
 #include <vector>
 #include <chrono>
 #include <iostream>
@@ -99,38 +100,48 @@ void SurfaceMeshSegmentation::set_segments_ids_to_colors(const size_t color_numb
         // Récupération de la propriété contenant les coordonnées des sommets du maillage
         const auto& location = this->m_surface_mesh.property_map<vertex_descriptor, Point_3>("v:point").first;
 
-        std::vector<double> vertex_coordinates;
-        vertex_coordinates.reserve(this->m_surface_mesh.number_of_vertices() * 3);
+        py::array_t<double> vertex_coordinates({static_cast<py::ssize_t>(this->m_surface_mesh.number_of_vertices() * 3)});
+        // Création d'un buffer pour stocker les valeurs à l'intérieur du tableau
+        auto vertex_coordinates_buffer = vertex_coordinates.mutable_unchecked<1>();
+        // Création d'un compteur sur le nombre de données stockées
+        size_t v = 0;
 
         for(const auto& vertex : this->m_surface_mesh.vertices()) {
             // Récupération des coordonnées du sommet courant
             const auto& coords = location[vertex];
-            vertex_coordinates.push_back(coords.x());
-            vertex_coordinates.push_back(coords.y());
-            vertex_coordinates.push_back(coords.z());
+            // Ajout des données dans le conteneur adéquat
+            vertex_coordinates_buffer(v) = coords.x();
+            vertex_coordinates_buffer(v+1) = coords.y();
+            vertex_coordinates_buffer(v+2) = coords.z();
+            // Mise à jour du compteur
+            v += 3;
         }
 
-        this->m_output_data["vertices"] = vertex_coordinates;
+        this->m_output_data["vertices"] = std::move(vertex_coordinates);
 
         // et de même pour les faces
-        std::vector<int> face_indices;
-        face_indices.reserve(this->m_surface_mesh.number_of_faces() * 3);
+        py::array_t<int> face_indices({static_cast<py::ssize_t>(this->m_surface_mesh.number_of_faces() * 3)});
+        // Création d'un buffer pour stocker les valeurs à l'intérieur du tableau
+        auto face_indices_buffer = face_indices.mutable_unchecked<1>();
+        // Création d'un compteur sur le nombre de données stockées
+        size_t f = 0;
         for(const auto& face: this->m_surface_mesh.faces()){
             for(const auto& vertex: vertices_around_face(this->m_surface_mesh.halfedge(face), this->m_surface_mesh)){
-                face_indices.push_back(vertex.idx());
+                // Ajout de l'indice dans le tableau
+                face_indices_buffer(f) = vertex.idx();
+                // Incrémentation du compteur
+                f++;
             }
         }
 
-        this->m_output_data["faces"] = face_indices;
+        this->m_output_data["faces"] = std::move(face_indices);
     }
     //Récupération de la property_map contenant les identifiants des segments obtenus
     const auto& segment_property_map = this->m_surface_mesh.property_map<face_descriptor, std::size_t>("f:sid").first;
     output_result.push_back("face_coloration");
     // Création des couleurs de façon aléatoire et permettant de remplir le tableau des couleurs des faces du maillage ultérieurement
-    std::vector<std::array<float, 4>> colors;
+    std::vector<std::array<float, 3>> colors;
     colors.reserve(color_number);
-
-    std::cout << "Nombre de faces du maillage résultant " << this->m_surface_mesh.number_of_faces() << std::endl;
 
     // Génération aléatoire des couleurs
     // Initialisation de la génération de nombres psudo-aléatoires
@@ -143,18 +154,26 @@ void SurfaceMeshSegmentation::set_segments_ids_to_colors(const size_t color_numb
     // Génération des couleurs
     for (int i = 0; i < color_number; i++){
         // Ajout de la nouvelle couleur avec l'alpha dans le tableau des couleurs
-        colors.emplace_back(std::array<float, 4>{distribution(engine), distribution(engine), distribution(engine), 1.0f});
+        colors.emplace_back(std::array<float, 3>{distribution(engine), distribution(engine), distribution(engine)});
     }
-    // Création d'un tableau pour stocker les couleurs associées aux faces du maillage et réservation de l'espace mémoire
-    std::vector<float> face_colors;
-    face_colors.reserve(num_faces(this->m_surface_mesh) * 4);
+    // Création d'un tableau pour stocker les couleurs associées aux faces du maillage
+    py::array_t<float> face_colors({static_cast<py::ssize_t>(num_faces(this->m_surface_mesh) * 4)});
+    // Création d'un buffer pour pouvoir y stocker les données
+    auto face_colors_buffer = face_colors.mutable_unchecked<1>();
+    // Et d'un compteur sur les données stockées
+    size_t c = 0;
 
     // Remplissage du tableau des couleurs des faces à partir des couleurs générées précédemment
     for(const auto& fd : faces(this->m_surface_mesh)){
         auto color = colors[segment_property_map[fd]];
-        face_colors.insert(face_colors.cend(), color.cbegin(), color.cend());
+        face_colors_buffer(c) = color[0];
+        face_colors_buffer(c+1) = color[1];
+        face_colors_buffer(c+2) = color[2];
+        face_colors_buffer(c+3) = 1.0f;
+        // Mise à jour du compteur
+        c += 4;
     }
 
-    this->m_output_data["colors"] = face_colors;
+    this->m_output_data["colors"] = std::move(face_colors);
     this->m_output_data["output_result"] = output_result;
 }

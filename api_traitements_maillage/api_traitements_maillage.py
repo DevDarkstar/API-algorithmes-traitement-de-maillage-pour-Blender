@@ -515,7 +515,7 @@ def compute_algorithm(context):
             algorithm = PyMeshApi(data)
         # Sinon il provient d'une autre bibliothèque
         else:
-            algorithm = Router(algorithm_data[0], algorithm_name, data)
+            algorithm = Router(algorithm_name, data)
 
         # Exécution ensuite de l'algorithme choisi par l'utilisateur
         try:
