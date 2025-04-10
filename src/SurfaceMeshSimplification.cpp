@@ -13,24 +13,32 @@ using namespace simplification;
 SurfaceMeshSimplification::SurfaceMeshSimplification(const py::dict& data) : m_surface_mesh()
 {
     //On caste toutes les données provenant de notre structure de données python vers des types C++
-    const std::vector<int> faces = data["faces"].cast<std::vector<int>>();
-    const std::vector<double> vertices = data["vertices"].cast<std::vector<double>>();
+    py::array_t<int> faces = data["faces"].cast<py::array_t<int>>();
+    py::array_t<double> vertices = data["vertices"].cast<py::array_t<double>>();
     py::list params = data["params"].cast<py::list>();
     py::dict algorithm_parameters = params[0].cast<py::dict>();
-    this->m_stop_ratio = algorithm_parameters["decimation_factor"].cast<double>();
+    this->m_stop_ratio = py::float_(algorithm_parameters["decimation_factor"]);
+
+    // Récupération des tailles des conteneurs des coordonnées des sommets et des indices des sommets des faces
+    size_t vertices_size = static_cast<size_t>(vertices.shape(0));
+    size_t faces_size = static_cast<size_t>(faces.shape(0));
+
+    // Ainsi qu'un pointeur sur leurs données
+    auto vertices_ptr = vertices.data();
+    auto faces_ptr = faces.data();
 
     //création d"un tableau de vector_descriptor qui va contenir les informations des coordonnées des sommets du maillage
     std::vector<vertex_descriptor> vertices_descriptor;
     //et réservation de l"espace mémoire adéquat
-    vertices_descriptor.reserve(vertices.size() / 3);
+    vertices_descriptor.reserve(vertices_size / 3);
 
-    for(int i = 0; i < vertices.size(); i+=3){
-        vertices_descriptor.push_back(this->m_surface_mesh.add_vertex(Point_3(vertices[i], vertices[i+1], vertices[i+2])));
+    for(int i = 0; i < vertices_size; i+=3){
+        vertices_descriptor.push_back(this->m_surface_mesh.add_vertex(Point_3(vertices_ptr[i], vertices_ptr[i+1], vertices_ptr[i+2])));
     }
 
-    for(int i = 0; i < faces.size(); i+=3){
+    for(int i = 0; i < faces_size; i+=3){
         //Création de la face du maillage
-        this->m_surface_mesh.add_face(vertices_descriptor[faces[i]], vertices_descriptor[faces[i+1]], vertices_descriptor[faces[i+2]]);
+        this->m_surface_mesh.add_face(vertices_descriptor[faces_ptr[i]], vertices_descriptor[faces_ptr[i+1]], vertices_descriptor[faces_ptr[i+2]]);
     }
 }
 
@@ -66,9 +74,9 @@ void SurfaceMeshSimplification::compute_algorithm()
 void SurfaceMeshSimplification::update_vertex_coordinates()
 {
     //Création d'un tableau qui va contenir les coordonnées de nos nouveaux résultant de l'algorithme de décimation
-    py::array_t<double> vertices_coordinates({static_cast<py::ssize_t>(num_vertices(this->m_surface_mesh) * 3)});
-    // Création d'un buffer pour pouvoir stocker les données
-    auto vertices_coordinates_buffer = vertices_coordinates.mutable_unchecked<1>();
+    py::array_t<double> vertices_coordinates({static_cast<py::ssize_t>(this->m_surface_mesh.vertices().size() * 3)});
+    // Récupération d'un pointeur sur le conteneur des données
+    auto vertices_coordinates_ptr = vertices_coordinates.mutable_data();
     // Création d'un compteur sur le nombre de données stockées
     size_t v = 0;
 
@@ -78,9 +86,9 @@ void SurfaceMeshSimplification::update_vertex_coordinates()
     for(const auto& vertex : this->m_surface_mesh.vertices()) {
         // Récupération des coordonnées du sommet courant
         const auto& coords = location[vertex];
-        vertices_coordinates_buffer(v) = coords.x();
-        vertices_coordinates_buffer(v+1) = coords.y();
-        vertices_coordinates_buffer(v+2) = coords.z();
+        vertices_coordinates_ptr[v] = coords.x();
+        vertices_coordinates_ptr[v+1] = coords.y();
+        vertices_coordinates_ptr[v+2] = coords.z();
         // Mise à jour du compteur
         v += 3;
     }
@@ -92,9 +100,9 @@ void SurfaceMeshSimplification::update_vertex_coordinates()
 void SurfaceMeshSimplification::update_face_indices(std::map<vertex_descriptor, int>& vertex_reindexing)
 {
     //Création d'un tableau qui va contenir les indices des sommets des faces résultant de l'algorithme de décimation
-    py::array_t<int> face_indices({static_cast<py::ssize_t>(num_faces(this->m_surface_mesh) * 3)});
-    // Création d'un buffer pour pouvoir stocker les données
-    auto face_indices_buffer = face_indices.mutable_unchecked<1>();
+    py::array_t<int> face_indices({static_cast<py::ssize_t>(this->m_surface_mesh.faces().size() * 3)});
+    // Récupération d'un pointeur sur le conteneur des données
+    auto face_indices_ptr = face_indices.mutable_data();
     // Création d'un compteur sur le nombre de données stockées
     size_t f = 0;
 
@@ -103,7 +111,7 @@ void SurfaceMeshSimplification::update_face_indices(std::map<vertex_descriptor, 
         // Parcours des sommets appartenant à la face courante
         for(const auto& vertex : vertices_around_face(this->m_surface_mesh.halfedge(face), this->m_surface_mesh)) {
             // ajout du nouvel indice (obtenu par ré-indexation) du sommet dans le conteneur des indices de face
-            face_indices_buffer(f) = vertex_reindexing[vertex];
+            face_indices_ptr[f] = vertex_reindexing[vertex];
             // Incrémentation du compteur
             f++;
         }

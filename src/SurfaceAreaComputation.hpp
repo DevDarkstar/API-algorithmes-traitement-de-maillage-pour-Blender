@@ -18,7 +18,7 @@ public:
     void compute_algorithm() override;
 
 private:
-    std::vector<std::array<cgal_area_computation::Point_3, 3>> m_vertex_coordinates;
+    std::vector<std::array<cgal_area_computation::Point_3, 3>> m_faces;
     std::string m_output_option;
 };
 
